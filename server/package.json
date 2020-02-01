@@ -1,0 +1,38 @@
+{
+  "name": "binance-exchange",
+  "version": "1.0.0",
+  "description": "binance-exchange",
+  "scripts": {
+    "start": "babel-node build/server.js",
+    "build": "rm -rf dest && webpack"
+  },
+  "dependencies": {
+    "@babel/polyfill": "^7.8.3",
+    "@babel/runtime": "^7.8.3",
+    "axios": "^0.19.2",
+    "body-parser": "^1.19.0",
+    "chalk": "^3.0.0",
+    "cors": "^2.8.5",
+    "express": "^4.17.1",
+    "morgan": "^1.9.1"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.8.3",
+    "@babel/node": "^7.8.3",
+    "@babel/plugin-transform-runtime": "^7.8.3",
+    "@babel/preset-env": "^7.8.3",
+    "@babel/register": "^7.8.3",
+    "babel-loader": "^8.0.6",
+    "babel-preset-env": "^1.7.0",
+    "babel-register": "^6.26.0",
+    "nodemon-webpack-plugin": "^4.2.2",
+    "webpack": "^4.41.5",
+    "webpack-cli": "^3.3.10",
+    "webpack-node-externals": "^1.7.2"
+  },
+  "engines": {
+    "node": "13.7.0"
+  },
+  "author": "Vladimir Buchatskyi",
+  "license": "MIT"
+}
