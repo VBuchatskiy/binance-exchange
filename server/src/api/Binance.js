@@ -15,12 +15,12 @@ const Binance = class {
     }
   }
 
-  async klines({ symbol = 'BTCUSDT', interval = '4h', limit = 120, param = 0 } = {}) {
+  async klines({ symbol = 'BTCUSDT', interval = '4h', limit = 120, param } = {}) {
     const base = `${this.host}${this.path.klines}`
     const query = `?symbol=${symbol}&interval=${interval}&limit=${limit}`
     const url = base.concat(query)
     try {
-      if (param) {
+      if (!isNaN(param)) {
         const { data } = await axios.get(url)
         return data.map(kline => parseFloat(kline[param]))
       } else {
