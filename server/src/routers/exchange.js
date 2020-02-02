@@ -6,13 +6,13 @@ import { klines, trades } from '@@/api/constants'
 const exchange = new Router()
 const api = new Binance()
 
-exchange.get('/', (req, res, next) => {
+exchange.get('/', (req, res) => {
   Promise.all([
     api.klines({ symbol: 'BTCUSDT', interval: '4h', limit: 120, param: klines['CLOSE_PRICE'] }),
     api.trades({ symbol: 'BTCUSDT', limit: 1, param: trades[2] })
   ]).then(response => {
     const closePrices = response[0]
-    const lastPrice = response[1].pop()
+    const lastPrice = response[1]
     const rsi = new RSI({
       values: closePrices,
       period: 14
