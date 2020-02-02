@@ -14,12 +14,12 @@ const klines = {
 }
 
 const trades = {
-  'ID': 1,
-  'PRICE': 2,
-  'QTY': 3,
-  'TIME': 4,
-  'iSBUYERMAKER': 5,
-  'ISBESTMATCH': 6
+  1: 'id',
+  2: 'price',
+  3: 'qty',
+  4: 'time',
+  5: 'isBuyerMaker',
+  6: 'isBestMatch'
 }
 
 export {

@@ -31,7 +31,7 @@ const Binance = class {
       console.warn(error.message)
     }
   }
-  async trades({ symbol = 'BTCUSDT', limit = 1, param = 'price', last = 0 } = {}) {
+  async trades({ symbol = 'BTCUSDT', limit = 1, param = 'price' } = {}) {
     const base = `${this.host}${this.path.trades}`
     const query = `?symbol=${symbol}&limit=${limit}`
     const url = base.concat(query)
@@ -39,7 +39,7 @@ const Binance = class {
     try {
       if (param) {
         const { data } = await axios.get(url)
-        return data.map(item => parseFloat(item[param]))[last]
+        return data.map(item => parseFloat(item[param]))
       } else {
         const { data } = await axios.get(url)
         return data;
