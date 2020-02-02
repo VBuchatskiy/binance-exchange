@@ -28,13 +28,11 @@ exchange.get('/', (req, res) => {
       values: closePrices,
       period: 14
     }).pop()
-
     const bollingerbands = new BollingerBands({
       values: closePrices,
       period: 20,
       stdDev: 2
     }).pop()
-
     const macd = new MACD({
       values: closePrices,
       fastPeriod: 5,

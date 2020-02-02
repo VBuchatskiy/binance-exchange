@@ -35,7 +35,6 @@ const Binance = class {
     const base = `${this.host}${this.path.trades}`
     const query = `?symbol=${symbol}&limit=${limit}`
     const url = base.concat(query)
-
     try {
       if (param) {
         const { data } = await axios.get(url)
