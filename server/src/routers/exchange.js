@@ -11,7 +11,6 @@ exchange.get('/', (req, res) => {
     api.klines({ symbol: 'BTCUSDT', interval: '4h', limit: 120, param: klines['CLOSE_PRICE'] }),
     api.trades({ symbol: 'BTCUSDT', limit: 1, param: trades[2] })
   ]).then(response => {
-
     const closePrices = response[0]
     const lastPrice = response[1]
     const ma = {
