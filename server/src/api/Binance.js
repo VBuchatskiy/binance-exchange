@@ -1,7 +1,5 @@
 import axios from 'axios'
-
 //https://github.com/binance-exchange/binance-official-api-docs/blob/master/rest-api.md
-
 const Binance = class {
   constructor() {
     this.host = 'https://api.binance.com'
@@ -14,7 +12,6 @@ const Binance = class {
       klines: '/api/v3/klines'
     }
   }
-
   async klines({ symbol = 'BTCUSDT', interval = '4h', limit = 120, param } = {}) {
     const base = `${this.host}${this.path.klines}`
     const query = `?symbol=${symbol}&interval=${interval}&limit=${limit}`
@@ -35,7 +32,6 @@ const Binance = class {
     const base = `${this.host}${this.path.trades}`
     const query = `?symbol=${symbol}&limit=${limit}`
     const url = base.concat(query)
-
     try {
       if (param) {
         const { data } = await axios.get(url)
