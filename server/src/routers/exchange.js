@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { BollingerBands, RSI, MACD } from '@@/indicators/TechnicalIndicators'
+import { BollingerBands, RSI, MACD, SMA } from '@@/indicators/TechnicalIndicators'
 import { Binance } from '@@/api/Binance'
 import { klines, trades } from '@@/api/constants'
 
@@ -13,6 +13,16 @@ exchange.get('/', (req, res) => {
   ]).then(response => {
     const closePrices = response[0]
     const lastPrice = response[1]
+    const ma = {
+      fast: new SMA({
+        values: closePrices,
+        period: 12
+      }).result.pop(),
+      slow: new SMA({
+        values: closePrices,
+        period: 26
+      }).result.pop()
+    }
     const rsi = new RSI({
       values: closePrices,
       period: 14
@@ -35,7 +45,8 @@ exchange.get('/', (req, res) => {
       lastPrice,
       rsi,
       bollingerbands,
-      macd
+      macd,
+      ma
     }))
 
   }).catch(error => {
