@@ -22,7 +22,7 @@ const Binance = class {
         return data.map(kline => parseFloat(kline[param]))
       } else {
         const { data } = await axios.get(url)
-        return data;
+        return data
       }
     } catch (error) {
       console.error(error.message)
@@ -38,7 +38,7 @@ const Binance = class {
         return data.map(item => parseFloat(item[param]))
       } else {
         const { data } = await axios.get(url)
-        return data;
+        return data
       }
     } catch (error) {
       console.error(error.message)

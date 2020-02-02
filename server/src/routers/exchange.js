@@ -17,11 +17,11 @@ exchange.get('/', (req, res) => {
       fast: new SMA({
         values: closePrices,
         period: 12
-      }).result.pop(),
+      }).pop(),
       slow: new SMA({
         values: closePrices,
         period: 26
-      }).result.pop()
+      }).pop()
     }
     const rsi = new RSI({
       values: closePrices,
@@ -51,7 +51,7 @@ exchange.get('/', (req, res) => {
 
   }).catch(error => {
     console.error(error.message)
-  });
+  })
 })
 
 export default exchange

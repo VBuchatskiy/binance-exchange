@@ -6,7 +6,7 @@ import parser from 'body-parser'
 import exchange from '@@/routers/exchange'
 import { port } from '@/config/config'
 
-const app = express();
+const app = express()
 
 app.use(logger('combined'))
 app.use(parser.json())
@@ -16,4 +16,4 @@ app.use('/', exchange)
 
 app.listen(port, () => {
   console.log(chalk.cyan(`http://localhost:${port}/`))
-});
+})
