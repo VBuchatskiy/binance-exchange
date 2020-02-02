@@ -5,10 +5,10 @@ const MACD = TechnicalIndicators.macd
 const SMA = TechnicalIndicators.sma
 
 export {
-    RSI,
-    BollingerBands,
-    MACD,
-    SMA
+  RSI,
+  BollingerBands,
+  MACD,
+  SMA
 }
 
 // https://www.npmjs.com/package/technicalindicators
