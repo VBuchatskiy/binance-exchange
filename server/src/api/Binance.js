@@ -28,7 +28,7 @@ const Binance = class {
         return data;
       }
     } catch (error) {
-      console.warn(error.message)
+      console.error(error.message)
     }
   }
   async trades({ symbol = 'BTCUSDT', limit = 1, param = 'price' } = {}) {
@@ -45,7 +45,7 @@ const Binance = class {
         return data;
       }
     } catch (error) {
-      console.warn(error.message)
+      console.error(error.message)
     }
   }
 }
