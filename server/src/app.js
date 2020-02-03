@@ -12,7 +12,10 @@ app.use(logger('combined'))
 app.use(parser.json())
 app.use(cors())
 
-app.use('/', exchange)
+app.use('/exchange', exchange)
+app.use('/futures', (req, res) => {
+  res.send('!!!')
+})
 
 app.listen(port, () => {
   console.log(chalk.cyan(`http://localhost:${port}/`))
