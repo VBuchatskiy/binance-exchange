@@ -1,3 +1,8 @@
+const endpoints = {
+  1: 'https://api.binance.com/api/v3/',
+  2: 'https://fapi.binance.com/fapi/v1/'
+}
+
 const klines = {
   'OPEN_TIME': 0,
   'OPEN_PRICE': 1,
@@ -23,6 +28,7 @@ const trades = {
 }
 
 export {
+  endpoints,
   klines,
   trades
 }
