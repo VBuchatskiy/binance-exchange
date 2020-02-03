@@ -2,16 +2,17 @@ import axios from 'axios'
 import { BollingerBands, RSI, MACD, SMA } from '@@/indicators/TechnicalIndicators'
 import { klines, trades } from '@@/api/constants'
 //https://github.com/binance-exchange/binance-official-api-docs/blob/master/rest-api.md
+//https://binance-docs.github.io/apidocs/futures/en/#change-log
 const Binance = class {
   constructor({ host = 'https://api.binance.com/api/v3/', query = '' } = {}) {
     this.host = host
     this.path = {
-      ping: '/api/v3/ping',
-      time: '/api/v3/time',
-      info: '/api/v3/exchangeInfo',
-      depth: '/api/v3/depth',
-      trades: '/api/v3/trades',
-      klines: '/api/v3/klines'
+      ping: 'ping',
+      time: 'time',
+      info: 'exchangeInfo',
+      depth: 'depth',
+      trades: 'trades',
+      klines: 'klines'
     }
     this.query = query
   }
@@ -25,13 +26,13 @@ const Binance = class {
         return data.map(kline => parseFloat(kline[param]))
       } else {
         const { data } = await axios.get(url)
-        return data;
+        return data
       }
     } catch (error) {
       console.error(error.message)
     }
   }
-  async trades({ symbol = 'BTCUSDT', limit = 1, param = 'price' } = {}) {
+  async trades({ symbol = 'BTCUSDT', limit = 1, param } = {}) {
     const base = `${this.host}${this.path.trades}`
     const query = `?symbol=${symbol}&limit=${limit}`
     const url = base.concat(query)
@@ -41,7 +42,7 @@ const Binance = class {
         return data.map(item => parseFloat(item[param]))
       } else {
         const { data } = await axios.get(url)
-        return data;
+        return data
       }
     } catch (error) {
       console.error(error.message)

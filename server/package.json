@@ -14,7 +14,8 @@
     "chalk": "^3.0.0",
     "cors": "^2.8.5",
     "express": "^4.17.1",
-    "morgan": "^1.9.1"
+    "morgan": "^1.9.1",
+    "technicalindicators": "^3.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.8.3",
@@ -25,6 +26,8 @@
     "babel-loader": "^8.0.6",
     "babel-preset-env": "^1.7.0",
     "babel-register": "^6.26.0",
+    "eslint": "^6.8.0",
+    "eslint-loader": "^3.0.3",
     "nodemon-webpack-plugin": "^4.2.2",
     "webpack": "^4.41.5",
     "webpack-cli": "^3.3.10",
