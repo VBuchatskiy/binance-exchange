@@ -6,10 +6,10 @@ const paths = {
   entrys: {
     root: resolve(__dirname),
     src: resolve(__dirname, 'src'),
-    server: resolve(__dirname, 'src', 'app.js'),
+    server: resolve(__dirname, 'src', 'app.js')
   },
-  output: resolve(__dirname, 'build'),
-};
+  output: resolve(__dirname, 'build')
+}
 
 export default {
   mode: 'development',
@@ -20,7 +20,7 @@ export default {
   },
   output: {
     filename: '[name].js',
-    path: paths.output,
+    path: paths.output
   },
   resolve: {
     modules: [paths.entrys.root, 'node_modules'],
@@ -42,8 +42,8 @@ export default {
           {
             loader: 'eslint-loader'
           }]
-      },
-    ],
+      }
+    ]
   },
   watch: true,
   watchOptions: {
@@ -56,4 +56,4 @@ export default {
   plugins: [
     new nodemon()
   ]
-};
+}

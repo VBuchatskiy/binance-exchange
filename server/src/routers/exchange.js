@@ -1,10 +1,10 @@
 import { Router } from 'express'
 import { BollingerBands, RSI, MACD, SMA } from '@@/indicators/TechnicalIndicators'
 import { Binance } from '@@/api/Binance'
-import { klines, trades } from '@@/api/constants'
+import { klines, trades, endpoints } from '@@/api/constants'
 
 const exchange = new Router()
-const api = new Binance()
+const api = new Binance(endpoints[1])
 
 exchange.get('/', (req, res) => {
   Promise.all([
@@ -12,7 +12,7 @@ exchange.get('/', (req, res) => {
     api.trades({ symbol: 'BTCUSDT', limit: 1, param: trades[2] })
   ]).then(response => {
     const closePrices = response[0]
-    const lastPrice = response[1]
+    const lastPrice = response[1].pop()
     const ma = {
       fast: new SMA({
         values: closePrices,
@@ -34,9 +34,9 @@ exchange.get('/', (req, res) => {
     }).pop()
     const macd = new MACD({
       values: closePrices,
-      fastPeriod: 5,
-      slowPeriod: 8,
-      signalPeriod: 3,
+      fastPeriod: 12,
+      slowPeriod: 26,
+      signalPeriod: 9,
       SimpleMAOscillator: false,
       SimpleMASignal: false
     }).pop()

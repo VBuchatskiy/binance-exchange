@@ -1,15 +1,16 @@
 import axios from 'axios'
 //https://github.com/binance-exchange/binance-official-api-docs/blob/master/rest-api.md
+//https://binance-docs.github.io/apidocs/futures/en/#change-log
 const Binance = class {
-  constructor() {
-    this.host = 'https://api.binance.com'
+  constructor(host = 'https://api.binance.com/api/v3/') {
+    this.host = host
     this.path = {
-      ping: '/api/v3/ping',
-      time: '/api/v3/time',
-      info: '/api/v3/exchangeInfo',
-      depth: '/api/v3/depth',
-      trades: '/api/v3/trades',
-      klines: '/api/v3/klines'
+      ping: 'ping',
+      time: 'time',
+      info: 'exchangeInfo',
+      depth: 'depth',
+      trades: 'trades',
+      klines: 'klines'
     }
   }
   async klines({ symbol = 'BTCUSDT', interval = '4h', limit = 120, param } = {}) {
@@ -28,7 +29,7 @@ const Binance = class {
       console.error(error.message)
     }
   }
-  async trades({ symbol = 'BTCUSDT', limit = 1, param = 'price' } = {}) {
+  async trades({ symbol = 'BTCUSDT', limit = 1, param } = {}) {
     const base = `${this.host}${this.path.trades}`
     const query = `?symbol=${symbol}&limit=${limit}`
     const url = base.concat(query)
