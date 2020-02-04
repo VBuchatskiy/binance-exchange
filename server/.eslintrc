@@ -10,30 +10,27 @@
   },
   "rules": {
     "indent": [
+      "warn",
       2,
-      2,
-      {
-        "SwitchCase": 1
-      }
     ],
     "linebreak-style": [
-      "error",
+      "warn",
       "unix"
     ],
     "quotes": [
-      "error",
+      "warn",
       "single"
     ],
     "semi": [
-      "error",
+      "warn",
       "never"
     ],
     "comma-dangle": [
-      "error",
+      "warn",
       "never"
     ],
     "no-cond-assign": [
-      "error",
+      "warn",
       "always"
     ],
     "no-console": "off"
