@@ -47,12 +47,19 @@ const Binance = class {
       low: candlas.map(price => parseFloat(price[KLINES['LOW_PRICE']]))
     }
     const trade = trades.pop()
-    const bullishhammer = BullishHammer({
-      open: [...prices.open.slice(-1)],
-      close: [...prices.close.slice(-1)],
-      high: [...prices.hight.slice(-1)],
-      low: [...prices.low.slice(-1)]
-    })
+    const bullishhammer = {
+      status: BullishHammer({
+        open: [...prices.open.slice(-1)],
+        close: [...prices.close.slice(-1)],
+        high: [...prices.hight.slice(-1)],
+        low: [...prices.low.slice(-1)]
+      }),
+      entry: {
+        price: bullishhammer ? prices.close.candlas.slice(-2) : 0,
+        stop: bullishhammer ? prices.low.candlas.slice(-1) : 0,
+        take: bullishhammer ? prices.hight.candlas.slice(-2) : 0
+      }
+    }
     const morningstar = MorningStar({
       open: [...prices.open.slice(-3)],
       close: [...prices.close.slice(-3)],
@@ -87,14 +94,7 @@ const Binance = class {
       SimpleMASignal: false
     }).pop()
 
-    const entry = {
-      price: bullishhammer ? prices.close.candlas.slice(-2) : 0,
-      stop: bullishhammer ? prices.low.candlas.slice(-2) : 0,
-      take: bollingerbands ? bollingerbands.middle : 0
-    }
-
     return {
-      entry,
       trade,
       ma,
       rsi,
