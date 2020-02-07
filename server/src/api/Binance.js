@@ -1,6 +1,6 @@
 import axios from 'axios'
 import { BollingerBands, RSI, MACD, SMA, MorningStar, BullishHammer } from '@@/indicators/TechnicalIndicators'
-import { klines, trades } from '@@/api/constants'
+import { KLINES } from '@@/api/constants'
 //https://github.com/binance-exchange/binance-official-api-docs/blob/master/rest-api.md
 //https://binance-docs.github.io/apidocs/futures/en/#change-log
 const Binance = class {
@@ -13,7 +13,7 @@ const Binance = class {
       depth: 'depth',
       trades: 'trades',
       klines: 'klines'
-    } 
+    }
   }
   async klines({ symbol = 'BTCUSDT', interval = '4h', limit = 120 } = {}) {
     const base = `${this.host}${this.path.klines}`
@@ -26,31 +26,27 @@ const Binance = class {
       console.error(error.stack)
     }
   }
-  async trades({ symbol = 'BTCUSDT', limit = 1, param = '' } = {}) {
+  async trades({ symbol = 'BTCUSDT', limit = 1 } = {}) {
     const base = `${this.host}${this.path.trades}`
     const query = `?symbol=${symbol.toUpperCase()}&limit=${limit}`
     const url = base.concat(query)
     try {
-      if (param) {
-        const { data } = await axios.get(url)
-        return data.map(item => parseFloat(item[param]))
-      } else {
-        const { data } = await axios.get(url)
-        return data
-      }
+      const { data } = await axios.get(url)
+      return data
     } catch (error) {
       console.error(error.stack)
     }
   }
   async indicators({ symbol = 'BTCUSDT', interval = '4h', limit = 120 } = {}) {
-    const price = await this.trades({ symbol, param: trades[2] })
+    const trades = await this.trades({ symbol })
     const candlas = await this.klines({ symbol, interval, limit })
     const prices = {
-      close: candlas.map(price => parseFloat(price[klines['CLOSE_PRICE']])),
-      open: candlas.map(price => parseFloat(price[klines['OPEN_PRICE']])),
-      hight: candlas.map(price => parseFloat(price[klines['HIGHT_PRICE']])),
-      low: candlas.map(price => parseFloat(price[klines['LOW_PRICE']]))
+      close: candlas.map(price => parseFloat(price[KLINES['CLOSE_PRICE']])),
+      open: candlas.map(price => parseFloat(price[KLINES['OPEN_PRICE']])),
+      hight: candlas.map(price => parseFloat(price[KLINES['HIGHT_PRICE']])),
+      low: candlas.map(price => parseFloat(price[KLINES['LOW_PRICE']]))
     }
+    const trade = trades.pop()
     const bullishhammer = BullishHammer({
       open: [...prices.open.slice(-1)],
       close: [...prices.close.slice(-1)],
@@ -91,8 +87,15 @@ const Binance = class {
       SimpleMASignal: false
     }).pop()
 
+    const entry = {
+      price: bullishhammer ? prices.close.candlas.slice(-2) : 0,
+      stop: bullishhammer ? prices.low.candlas.slice(-2) : 0,
+      take: bollingerbands ? bollingerbands.middle : 0
+    }
+
     return {
-      price,
+      entry,
+      trade,
       ma,
       rsi,
       bollingerbands,
