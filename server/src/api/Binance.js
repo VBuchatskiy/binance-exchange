@@ -94,6 +94,12 @@ const Binance = class {
       SimpleMASignal: false
     }).pop()
 
+    const entry = {
+      price: bullishhammer ? prices.close.candlas.slice(-2) : 0,
+      stop: bullishhammer ? prices.low.candlas.slice(-2) : 0,
+      take: bollingerbands ? bollingerbands.middle : 0
+    }
+
     return {
       trade,
       ma,
