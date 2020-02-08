@@ -1,6 +1,6 @@
 <template>
   <section>
-    <select @change="update" name="market" v-model="selected.options.market.name">
+    <select name="market" v-model="selected.options.market.name">
       <option :key="index" v-for="(market, index) of selected.options.market.options">
         <span>{{market}}</span>
       </option>
@@ -38,7 +38,9 @@
         </option>
       </select>
     </template>
-    <template v-if="selected.options.interval.value">
+    <template
+      v-if="selected.options.interval.value && selected.options.market.name && selected.options.symbol.name"
+    >
       <button @click="load">
         <template v-if="!acive">
           <span>Start</span>
@@ -53,16 +55,29 @@
         <span>Start</span>
       </button>
     </template>
-    <p v-if="data">{{ data }}</p>
+    <template v-if="Object.keys(history.orders).length">
+      <ul>
+        <li :key="timestamp" v-for="(order, timestamp) of history.orders">
+          <p>Entry Time: {{ order.timestamp | date }}</p>
+          <p>Entry Price {{ order.entry }}</p>
+          <p>Stop Loss {{ order.stop }}</p>
+          <p>Take Profit {{ order.take }}</p>
+        </li>
+      </ul>
+    </template>
   </section>
 </template>
 
 <script>
 import axios from "axios";
+import Vue from "vue";
 export default {
   name: "App",
   data() {
     return {
+      history: {
+        orders: {}
+      },
       data: null,
       timer: "",
       acive: false,
@@ -87,9 +102,6 @@ export default {
     };
   },
   methods: {
-    update() {
-      console.warn(this.selected);
-    },
     load() {
       const base =
         this.selected.options.market.name === "exchange"
@@ -102,7 +114,6 @@ export default {
         this.timer = 0;
         return;
       }
-      console.warn(url);
       this.acive = true;
       this.timer = setInterval(() => {
         axios
@@ -117,13 +128,36 @@ export default {
           .catch(error => {
             console.error(error.message);
           });
-      }, 1000);
+      }, 2000);
     },
     notification(respose) {
-      if (respose.morningstar) {
+      if (respose.order) {
+        console.warn(respose.order.timestamp);
+        Vue.set(this.history.orders, respose.order.timestamp, respose.order);
         this.audio.play();
       }
+    }
+  },
+  filters: {
+    date(timestamp) {
+      const date = new Date(timestamp);
+      const hours = date.getHours();
+      const minutes = date.getMinutes();
+      const seconds = date.getSeconds();
+      return timestamp
+        ? `${hours}
+          :${minutes.length === 1 ? `0${minutes}` : `${minutes}`}
+          :${seconds.length === 1 ? `0${seconds}` : `${seconds}`}`
+        : "";
     }
   }
 };
 </script>
+
+<style scoped>
+ul {
+  padding: 0;
+  margin: 0;
+  list-style: 0;
+}
+</style>>

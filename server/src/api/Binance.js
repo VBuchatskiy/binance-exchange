@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { BollingerBands, RSI, MACD, SMA, MorningStar, BullishHammer } from '@@/indicators/TechnicalIndicators'
+import { BollingerBands, RSI, MACD, SMA, Stochastic } from '@@/indicators/TechnicalIndicators'
 import { KLINES } from '@@/api/constants'
 //https://github.com/binance-exchange/binance-official-api-docs/blob/master/rest-api.md
 //https://binance-docs.github.io/apidocs/futures/en/#change-log
@@ -14,7 +14,7 @@ const Binance = class {
       trades: 'trades',
       klines: 'klines'
     }
-    this.data = null
+    // this.data = null,
   }
   // async load({ symbol = 'BTCUSDT', interval = '4h', limit = 120 } = {}) {
   //   const trades = await this.trades({ symbol })
@@ -43,9 +43,19 @@ const Binance = class {
       console.error(error.stack)
     }
   }
+  async depth({ symbol = 'BTCUSDT', limit = 5 } = {}) {
+    const base = `${this.host}${this.path.depth}`
+    const query = `?symbol=${symbol.toUpperCase()}&limit=${limit}`
+    const url = base.concat(query)
+    try {
+      const { data } = await axios.get(url)
+      return data
+    } catch (error) {
+      console.error(error.stack)
+    }
+  }
   async indicators({ symbol = 'BTCUSDT', interval = '4h', limit = 120 } = {}) {
-    const time = new Date().valueOf()
-    const trades = await this.trades({ symbol })
+    const timestamp = new Date().valueOf()
     const candles = await this.klines({ symbol, interval, limit })
     const prices = {
       close: candles.map(price => parseFloat(price[KLINES['CLOSE_PRICE']])),
@@ -53,85 +63,68 @@ const Binance = class {
       high: candles.map(price => parseFloat(price[KLINES['HIGH_PRICE']])),
       low: candles.map(price => parseFloat(price[KLINES['LOW_PRICE']]))
     }
-    const trade = {
-      price: trades[trades.length - 1]
+    const depth = await this.depth({ symbol })
+    const macd = new MACD({
+      values: prices.close,
+      fastPeriod: 12,
+      slowPeriod: 26,
+      signalPeriod: 9,
+      SimpleMAOscillator: false,
+      SimpleMASignal: false
+    }).pop()
+    const bollingerbands = new BollingerBands({
+      values: prices.close,
+      period: 20,
+      stdDev: 2
+    }).pop()
+    const stochastic = new Stochastic({
+      high: prices.high,
+      low: prices.low,
+      close: prices.close,
+      period: 14,
+      signalPeriod: 3
+    }).pop()
+    const ma = {
+      fast: new SMA({
+        values: prices.close,
+        period: 12
+      }).pop(),
+      slow: new SMA({
+        values: prices.close,
+        period: 26
+      }).pop()
     }
-    this.data = {
-      trades,
-      candles
-    }
-    const last = {
-      candle: {
-        time: {
-          close: candles.pop()[KLINES['CLOSE_TIME']]
-        }
+    const rsi = new RSI({
+      values: prices.close,
+      period: 14
+    }).pop()
+    let order = null
+
+    if (stochastic.d > 15) {
+      const bid = parseFloat(depth.bids[0][0])
+      const ask = parseFloat(depth.asks[0][0])
+      const entry = parseFloat((bid + 0.01).toFixed(2))
+      const stop = parseFloat((entry - (entry * 0.01)).toFixed(2))
+      const take = parseFloat((entry * 1.02).toFixed(2))
+      order = {
+        entry,
+        stop,
+        take,
+        ask,
+        timestamp
       }
     }
 
-    let ma = null
-    let rsi = null
-    let macd = null
-    let bollingerbands = null
-    let bullishhammer = null
-    let morningstar = null
-
-    if (time > last.candle.time.close - 1000) {
-      bullishhammer = BullishHammer({
-        open: [...prices.open.slice(-1)],
-        close: [...prices.close.slice(-1)],
-        high: [...prices.high.slice(-1)],
-        low: [...prices.low.slice(-1)],
-        time: {
-          close: last.candle.time.close
-        }
-      })
-      morningstar = MorningStar({
-        open: [...prices.open.slice(-3)],
-        close: [...prices.close.slice(-3)],
-        high: [...prices.high.slice(-3)],
-        low: [...prices.low.slice(-3)],
-        time: {
-          close: last.candle.time.close
-        }
-      })
-      ma = {
-        fast: new SMA({
-          values: prices.close,
-          period: 12
-        }).pop(),
-        slow: new SMA({
-          values: prices.close,
-          period: 26
-        }).pop()
-      }
-      rsi = new RSI({
-        values: prices.close,
-        period: 14
-      }).pop()
-      macd = new MACD({
-        values: prices.close,
-        fastPeriod: 12,
-        slowPeriod: 26,
-        signalPeriod: 9,
-        SimpleMAOscillator: false,
-        SimpleMASignal: false
-      }).pop()
-      bollingerbands = new BollingerBands({
-        values: prices.close,
-        period: 20,
-        stdDev: 2
-      }).pop()
-      return {
-        trade,
-        ma,
-        rsi,
-        bollingerbands,
-        macd,
-        morningstar,
-        bullishhammer
-      }
+    return {
+      depth,
+      order,
+      ma,
+      rsi,
+      bollingerbands,
+      macd,
+      stochastic,
+      timestamp
     }
-    return null
   }
 }
 
