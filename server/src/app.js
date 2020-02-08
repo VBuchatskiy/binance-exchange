@@ -8,7 +8,7 @@ import { port } from '@/config/config'
 
 const app = express()
 
-app.use(logger('combined'))
+app.use(logger('dev'))
 app.use(parser.json())
 app.use(cors())
 
