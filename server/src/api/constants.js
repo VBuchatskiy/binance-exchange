@@ -3,10 +3,10 @@ const endpoints = {
   2: 'https://fapi.binance.com/fapi/v1/'
 }
 
-const klines = {
+const KLINES = {
   'OPEN_TIME': 0,
   'OPEN_PRICE': 1,
-  'HIGHT_PRICE': 2,
+  'HIGH_PRICE': 2,
   'LOW_PRICE': 3,
   'CLOSE_PRICE': 4,
   'VOLUME': 5,
@@ -18,7 +18,7 @@ const klines = {
   'IGNORE': 11
 }
 
-const trades = {
+const TRADES = {
   1: 'id',
   2: 'price',
   3: 'qty',
@@ -29,8 +29,8 @@ const trades = {
 
 export {
   endpoints,
-  klines,
-  trades
+  KLINES,
+  TRADES
 }
 
 // [
