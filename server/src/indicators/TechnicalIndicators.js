@@ -5,6 +5,7 @@ const MACD = TechnicalIndicators.macd
 const SMA = TechnicalIndicators.sma
 const MorningStar = TechnicalIndicators.morningstar
 const BullishHammer = TechnicalIndicators.bullishhammerstick
+const Stochastic = TechnicalIndicators.stochastic
 
 export {
   RSI,
@@ -12,7 +13,8 @@ export {
   MACD,
   SMA,
   MorningStar,
-  BullishHammer
+  BullishHammer,
+  Stochastic
 }
 
 // https://www.npmjs.com/package/technicalindicators
