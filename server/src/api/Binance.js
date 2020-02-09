@@ -64,6 +64,10 @@ const Binance = class {
       low: candles.map(price => parseFloat(price[KLINES['LOW_PRICE']]))
     }
     const depth = await this.depth({ symbol })
+    const trades = await this.trades({ symbol })
+    const ask = parseFloat(parseFloat(depth.asks[0][0]).toFixed(2))
+    const bid = parseFloat(parseFloat(depth.bids[0][0]).toFixed(2))
+    const trade = trades[0]
     const macd = new MACD({
       values: prices.close,
       fastPeriod: 12,
@@ -98,25 +102,41 @@ const Binance = class {
       values: prices.close,
       period: 14
     }).pop()
+
     let order = null
 
-    if (stochastic.d > 15) {
-      const bid = parseFloat(depth.bids[0][0])
-      const ask = parseFloat(depth.asks[0][0])
-      const entry = parseFloat((bid + 0.01).toFixed(2))
-      const stop = parseFloat((entry - (entry * 0.01)).toFixed(2))
-      const take = parseFloat((entry * 1.02).toFixed(2))
+    if (stochastic.d < 15) {
+      const type = 'long'
+      const entry = bid
+      const stop = parseFloat((entry - (entry * 0.001)).toFixed(2))
+      const take = parseFloat((entry * 1.002).toFixed(2))
       order = {
+        type,
         entry,
         stop,
         take,
-        ask,
+        timestamp
+      }
+    }
+
+    if (stochastic.d > 80) {
+      const type = 'short'
+      const entry = bid
+      const stop = parseFloat((entry * 1.002).toFixed(2))
+      const take = parseFloat((entry - (entry * 0.001)).toFixed(2))
+      order = {
+        type,
+        entry,
+        stop,
+        take,
         timestamp
       }
     }
 
     return {
-      depth,
+      trade,
+      ask,
+      bid,
       order,
       ma,
       rsi,
