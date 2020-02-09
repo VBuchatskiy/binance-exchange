@@ -42,11 +42,11 @@
       v-if="selected.options.interval.value && selected.options.market.name && selected.options.symbol.name"
     >
       <button @click="load">
-        <template v-if="!acive">
-          <span>Start</span>
+        <template v-if="!active">
+          <span>start</span>
         </template>
         <template v-else>
-          <span>Stop</span>
+          <span>stop</span>
         </template>
       </button>
     </template>
@@ -55,16 +55,22 @@
         <span>Start</span>
       </button>
     </template>
-    <template v-if="Object.keys(history.orders).length">
-      <ul>
-        <li :key="timestamp" v-for="(order, timestamp) of history.orders">
-          <p>Entry Time: {{ order.timestamp | date }}</p>
-          <p>Entry Price {{ order.entry }}</p>
-          <p>Stop Loss {{ order.stop }}</p>
-          <p>Take Profit {{ order.take }}</p>
-        </li>
-      </ul>
-    </template>
+    <section class="order-bar">
+      <template v-if="Object.keys(orders.history).length">
+        <ul class="order-bar__history">
+          <li :key="name" v-for="(order, name) of orders.history">
+            <p :key="name" v-for="(value, name) of order">{{ name }} {{ value }}</p>
+          </li>
+        </ul>
+      </template>
+      <template v-if="orders.active">
+        <ul class="order-bar__active">
+          <li>
+            <p :key="value" v-for="(value , name) of orders.active">{{ name }} : {{ value }}</p>
+          </li>
+        </ul>
+      </template>
+    </section>
   </section>
 </template>
 
@@ -75,12 +81,12 @@ export default {
   name: "App",
   data() {
     return {
-      history: {
-        orders: {}
+      orders: {
+        active: {},
+        history: {}
       },
-      data: null,
       timer: "",
-      acive: false,
+      active: false,
       audio: new Audio("./audio/icq.mp3"),
       selected: {
         options: {
@@ -103,61 +109,123 @@ export default {
   },
   methods: {
     load() {
+      const entry = [
+        "http://localhost:3000/exchange",
+        "http://localhost:3000/futures"
+      ];
       const base =
-        this.selected.options.market.name === "exchange"
-          ? `http://localhost:3000/exchange`
-          : `http://localhost:3000/futures`;
+        this.selected.options.market.name === "exchange" ? entry[0] : entry[1];
       const url = `${base}?symbol=${this.selected.options.symbol.name}&interval=${this.selected.options.interval.value}`;
+      this.active = true;
       if (this.timer) {
         clearInterval(this.timer);
-        this.acive = false;
+        this.active = false;
         this.timer = 0;
         return;
       }
-      this.acive = true;
       this.timer = setInterval(() => {
         axios
           .get(url)
           .then(respose => {
             const { data } = respose;
-            if (data) {
-              this.data = data;
-              this.notification(data);
-            }
+            this.addOrder(data);
+            this.addHistory(data);
           })
           .catch(error => {
             console.error(error.message);
           });
       }, 2000);
     },
-    notification(respose) {
-      if (respose.order) {
-        console.warn(respose.order.timestamp);
-        Vue.set(this.history.orders, respose.order.timestamp, respose.order);
-        this.audio.play();
+    notification() {
+      this.audio.play();
+    },
+    addOrder(respose) {
+      if (!Object.keys(this.orders.active).length && respose.order) {
+        this.orders.active = respose.order;
+      }
+    },
+    addHistory(respose) {
+      if (Object.keys(this.orders.active).length) {
+        const open = this.orders.active.timestamp;
+        const close = respose.timestamp;
+        const entry = this.orders.active.entry;
+        const take = this.orders.active.take;
+        const stop = this.orders.active.stop;
+        const profit = this.orders.active.take - this.orders.active.entry;
+        const price = parseFloat(respose.trade.price);
+        const type = this.orders.active.type;
+        const data = {
+          open,
+          close,
+          entry,
+          price,
+          take,
+          stop,
+          profit,
+          type
+        };
+
+        if (this.orders.active.type === "long") {
+          if (this.orders.active.take <= price) {
+            Vue.set(this.orders.history, respose.timestamp, data);
+            this.orders.active = {};
+          }
+          if (this.orders.active.stop >= price) {
+            Vue.set(this.orders.history, respose.timestamp, data);
+            this.orders.active = {};
+          }
+        }
+        if (this.orders.active.type === "short") {
+          if (this.orders.active.take >= price) {
+            Vue.set(this.orders.history, respose.timestamp, data);
+            this.orders.active = {};
+          }
+          if (this.orders.active.stop <= price) {
+            Vue.set(this.orders.history, respose.timestamp, data);
+            this.orders.active = {};
+          }
+        }
       }
     }
   },
-  filters: {
-    date(timestamp) {
-      const date = new Date(timestamp);
-      const hours = date.getHours();
-      const minutes = date.getMinutes();
-      const seconds = date.getSeconds();
-      return timestamp
-        ? `${hours}
-          :${minutes.length === 1 ? `0${minutes}` : `${minutes}`}
-          :${seconds.length === 1 ? `0${seconds}` : `${seconds}`}`
-        : "";
+  computed: {
+    history() {
+      return this.orders.history;
+    }
+  },
+  watch: {
+    history() {
+      this.notification();
     }
   }
 };
 </script>
 
-<style scoped>
+<style lang="css" scoped>
 ul {
   padding: 0;
   margin: 0;
-  list-style: 0;
+  list-style: none;
 }
-</style>>
+button {
+  height: 2em;
+}
+select {
+  height: 2em;
+  width: 16em;
+}
+.order-bar {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 1em;
+}
+
+span::first-letter {
+  text-transform: uppercase;
+}
+
+.order-bar__history,
+.order-bar__active {
+  width: 50%;
+}
+</style>
