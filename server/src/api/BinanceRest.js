@@ -7,20 +7,35 @@ export default class BinanceRest {
     this.key = key
     this.secret = secret
     this.path = {
+      account: 'balance',
+      risk: 'positionRisk',
       margin: {
         type: 'marginType',
         position: 'positionMargin',
         history: 'positionMargin/history'
       },
-      risk: 'positionRisk',
       orders: {
         open: 'allOpenOrders',
         batch: 'batchOrders'
       }
     }
   }
+  async account() {
+    const url = `${this.host}${this.path.account}`
+    const headers = {
+      'X-MBX-APIKEY': `${this.key}`,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    }
+    const instance = axios.create({ url, headers })
+    try {
+      const { data } = await instance.get(url)
+      return data
+    } catch (error) {
+      console.trace(error.stack)
+    }
+  }
   async orders() {
-    const url = `${this.host}${this.path.orders.open}${this.key}${this.secret}`
+    const url = `${this.host}${this.path.orders.open}`
     try {
       const { data } = await axios.get(url)
       return data
