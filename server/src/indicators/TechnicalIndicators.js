@@ -16,5 +16,3 @@ export {
   BullishHammer,
   Stochastic
 }
-
-// https://www.npmjs.com/package/technicalindicators
