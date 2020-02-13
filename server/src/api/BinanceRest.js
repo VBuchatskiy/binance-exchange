@@ -1,4 +1,5 @@
 import axios from 'axios'
+import CryptoJS from 'crypto-js'
 import config from '@/config/config'
 
 export default class BinanceRest {
@@ -7,7 +8,7 @@ export default class BinanceRest {
     this.key = key
     this.secret = secret
     this.path = {
-      account: 'balance',
+      account: 'account',
       risk: 'positionRisk',
       margin: {
         type: 'marginType',
@@ -20,11 +21,16 @@ export default class BinanceRest {
       }
     }
   }
+  get signature() {
+    const timestamp = `timestamp=${Date.now()}`
+    return `${timestamp}&signature=${CryptoJS.HmacSHA256(timestamp, this.secret).toString(CryptoJS.enc.Hex)}`
+  }
   async account() {
-    const url = `${this.host}${this.path.account}`
+    const url = `${this.host}${this.path.account}?${this.signature}`
     const headers = {
       'X-MBX-APIKEY': `${this.key}`,
-      'Content-Type': 'application/x-www-form-urlencoded'
+      'content-type': 'application/x-www-form-urlencoded',
+      'cache-control': 'no-cache'
     }
     const instance = axios.create({ url, headers })
     try {
