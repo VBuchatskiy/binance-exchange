@@ -9,7 +9,7 @@ futures.get('/', (req, res) => {
     new Binance({ host: config.endpoints.test.futures })
       .indicators()
       .then(response => {
-        console.warn(response)
+        response
         // res.json(response)
       })
       .catch(error => {
@@ -17,7 +17,7 @@ futures.get('/', (req, res) => {
       })
     new BinanceRest().account()
       .then(response => {
-        console.warn(response)
+        response
         res.json(response)
       })
       .catch(error => {
