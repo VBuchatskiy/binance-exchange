@@ -1,9 +1,10 @@
 import axios from 'axios'
 import config from '@/config/config'
 import crypto from 'crypto'
-import chalk from 'chalk'
+// import chalk from 'chalk'
+// import querystring from 'querystring'
 export default class BinanceRest {
-  constructor({ host = config.endpoints.test.future, key = config.key, secret = config.secret, reconect = 10000 } = {}) {
+  constructor({ host = config.endpoints.test.future, key = config.key, secret = config.secret, reconect = 5000 } = {}) {
     this.host = host
     this.key = key
     this.secret = secret
@@ -21,14 +22,17 @@ export default class BinanceRest {
         batch: 'batchOrders'
       },
       order: {
-        place: 'order'
+        open: 'order'
+      },
+      server: {
+        info: 'exchangeInfo'
       }
     }
   }
   get request() {
     const headers = {
       'X-MBX-APIKEY': `${this.key}`,
-      'content-type': 'application/x-www-form-urlencoded'
+      'Content-Type': 'application/x-www-form-urlencoded'
     }
     return axios.create({ url: this.host, headers })
   }
@@ -37,11 +41,24 @@ export default class BinanceRest {
     const reconect = `recvWindow=${this.reconect}&timestamp=${timestamp}`
     return `${reconect}&signature=${crypto.createHmac('sha256', this.secret).update(reconect).digest('hex')}`
   }
+  async info() {
+    const url = `${this.host}${this.path.server.info}?${this.signature}`
+    const instance = this.request
+    try {
+      const { data } = await instance.get(url)
+      console.warn(data.serverTime)
+      return data
+    }
+    catch (error) {
+      console.trace(error.stack)
+    }
+  }
   async account() {
     const instance = this.request
     const url = `${this.host}${this.path.account}?${this.signature}`
     try {
       const { data } = await instance.get(url)
+      console.warn(data)
       return data
     } catch (error) {
       console.trace(error.stack)
@@ -49,24 +66,40 @@ export default class BinanceRest {
   }
   async orders() {
     const instance = this.request
-    const url = `${this.host}${this.path.orders.open}`
+    const url = `${this.host}${this.path.orders.open}?${this.signature}`
     try {
       const { data } = await instance.get(url)
+      console.warn(data)
       return data
     } catch (error) {
       console.trace(error.stack)
     }
   }
-  async buy({ symbol = 'BTCUSDT', side = 'BUY', type = 'LIMIT', timeInForce = 'GTC', quantity = 1, price = 8800 } = {}) {
-    const instance = this.request
-    const query = `?symbol=${symbol}&side=${side}&type=${type}&timeInForce=${timeInForce}&quantity=${quantity}&price=${price}&${this.signature}`
-    const url = `${this.host}${this.path.order.place}${query}`
-    try {
-      const { data } = await instance.post(url)
-      return data
-    } catch (error) {
-      console.error(chalk.red('Faild buy order'))
-      console.trace(error.stack)
+  async buy({ symbol = 'BTCUSDT', side = 'BUY', type = 'LIMIT', quantity = 0.1, price = 9000 } = {}) {
+    // const instance = this.request
+    const timestamp = Date.now()
+    const query = `symbol=${symbol}&side=${side}&type=${type}&quantity=${quantity}&price=${price}&recvWindow=5000&timestamp=${timestamp}`
+    const signature = crypto.createHmac('sha256', this.secret).update(query).digest('hex')
+    const url = `${this.host}${this.path.order.open}?${query}&signature=${signature}`
+    const headers = {
+      'X-MBX-APIKEY': `${this.key}`,
+      'Content-Type': 'application/x-www-form-urlencoded'
     }
+    console.warn(url)
+    axios.post(url, {}, { headers })
+      .then(response => {
+        console.warn(response)
+      })
+      .catch((data) => {
+        data
+        console.warn(data)
+        // console.warn(chalk.red(error))
+      })
+    // try {
+    //   const response = await instance.post(url)
+    //   console.warn(chalk.red(response))
+    // } catch (error) {
+    //   console.trace(error.stack)
+    // }
   }
 }
