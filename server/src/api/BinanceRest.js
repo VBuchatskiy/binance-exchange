@@ -1,12 +1,13 @@
 import axios from 'axios'
-import CryptoJS from 'crypto-js'
 import config from '@/config/config'
-
+import crypto from 'crypto'
+import chalk from 'chalk'
 export default class BinanceRest {
-  constructor({ host = config.endpoints.test.future, key = config.key, secret = config.secret } = {}) {
+  constructor({ host = config.endpoints.test.future, key = config.key, secret = config.secret, reconect = 10000 } = {}) {
     this.host = host
     this.key = key
     this.secret = secret
+    this.reconect = reconect
     this.path = {
       account: 'account',
       risk: 'positionRisk',
@@ -18,21 +19,27 @@ export default class BinanceRest {
       orders: {
         open: 'allOpenOrders',
         batch: 'batchOrders'
+      },
+      order: {
+        place: 'order'
       }
     }
   }
-  get signature() {
-    const timestamp = `timestamp=${Date.now()}`
-    return `${timestamp}&signature=${CryptoJS.HmacSHA256(timestamp, this.secret).toString(CryptoJS.enc.Hex)}`
-  }
-  async account() {
-    const url = `${this.host}${this.path.account}?${this.signature}`
+  get request() {
     const headers = {
       'X-MBX-APIKEY': `${this.key}`,
-      'content-type': 'application/x-www-form-urlencoded',
-      'cache-control': 'no-cache'
+      'content-type': 'application/x-www-form-urlencoded'
     }
-    const instance = axios.create({ url, headers })
+    return axios.create({ url: this.host, headers })
+  }
+  get signature() {
+    const timestamp = Date.now()
+    const reconect = `recvWindow=${this.reconect}&timestamp=${timestamp}`
+    return `${reconect}&signature=${crypto.createHmac('sha256', this.secret).update(reconect).digest('hex')}`
+  }
+  async account() {
+    const instance = this.request
+    const url = `${this.host}${this.path.account}?${this.signature}`
     try {
       const { data } = await instance.get(url)
       return data
@@ -41,11 +48,24 @@ export default class BinanceRest {
     }
   }
   async orders() {
+    const instance = this.request
     const url = `${this.host}${this.path.orders.open}`
     try {
-      const { data } = await axios.get(url)
+      const { data } = await instance.get(url)
       return data
     } catch (error) {
+      console.trace(error.stack)
+    }
+  }
+  async buy({ symbol = 'BTCUSDT', side = 'BUY', type = 'LIMIT', timeInForce = 'GTC', quantity = 1, price = 8800 } = {}) {
+    const instance = this.request
+    const query = `?symbol=${symbol}&side=${side}&type=${type}&timeInForce=${timeInForce}&quantity=${quantity}&price=${price}&${this.signature}`
+    const url = `${this.host}${this.path.order.place}${query}`
+    try {
+      const { data } = await instance.post(url)
+      return data
+    } catch (error) {
+      console.error(chalk.red('Faild buy order'))
       console.trace(error.stack)
     }
   }

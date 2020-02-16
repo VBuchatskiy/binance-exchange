@@ -4,7 +4,7 @@ import config from '@/config/config'
 
 const futures = new Router()
 
-futures.get('/', (req, res) => {
+futures.all('/', (req, res) => {
   if (!Object.keys(req.query).length) {
     new Binance({ host: config.endpoints.test.futures })
       .indicators()
@@ -15,15 +15,13 @@ futures.get('/', (req, res) => {
       .catch(error => {
         console.trace(error.message)
       })
-    new BinanceRest().account()
+    new BinanceRest().buy({ host: config.endpoints.test.futures })
       .then(response => {
-        response
         res.json(response)
       })
       .catch(error => {
         console.trace(error.message)
       })
-
   } else {
     new Binance({ host: config.endpoints.test.futures })
       .indicators({ symbol: req.query.symbol, interval: req.query.interval })
