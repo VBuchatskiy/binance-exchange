@@ -6,22 +6,29 @@ const futures = new Router()
 
 futures.all('/', (req, res) => {
   if (!Object.keys(req.query).length) {
-    new Binance({ host: config.endpoints.test.futures })
-      .indicators()
+    new BinanceRest().buy()
       .then(response => {
-        response
-        // res.json(response)
+        res.send(response)
       })
       .catch(error => {
-        console.trace(error.message)
+        console.trace(error.stack)
       })
-    new BinanceRest().buy({ host: config.endpoints.test.futures })
-      .then(response => {
-        res.json(response)
-      })
-      .catch(error => {
-        console.trace(error.message)
-      })
+    // new BinanceRest().buy({ host: config.endpoints.test.futures })
+    //   .then(response => {
+    //     console.warn(response)
+    //   })
+    //   .catch(error => {
+    //     console.trace(error.stack)
+    //   })
+    // new Binance()
+    //   .indicators()
+    //   .then(response => {
+    //     response
+    //     res.json(response)
+    //   })
+    //   .catch(error => {
+    //     console.trace(error.message)
+    //   })
   } else {
     new Binance({ host: config.endpoints.test.futures })
       .indicators({ symbol: req.query.symbol, interval: req.query.interval })
