@@ -46,7 +46,7 @@ export default class BinanceRest {
     const instance = this.request
     try {
       const { data } = await instance.get(url)
-      console.warn(data.serverTime)
+      console.warn(data.rateLimits)
       return data
     }
     catch (error) {
@@ -75,10 +75,10 @@ export default class BinanceRest {
       console.trace(error.stack)
     }
   }
-  async buy({ symbol = 'BTCUSDT', side = 'BUY', type = 'LIMIT', quantity = 0.1, price = 9000 } = {}) {
+  async buy({ symbol = 'BTCUSDT', side = 'BUY', timeInForce = 'GTC', type = 'LIMIT', quantity = 0.1, price = 9000 } = {}) {
     // const instance = this.request
     const timestamp = Date.now()
-    const query = `symbol=${symbol}&side=${side}&type=${type}&quantity=${quantity}&price=${price}&recvWindow=5000&timestamp=${timestamp}`
+    const query = `symbol=${symbol}&side=${side}&timeInForce=${timeInForce}&type=${type}&quantity=${quantity}&price=${price}&recvWindow=5000&timestamp=${timestamp}`
     const signature = crypto.createHmac('sha256', this.secret).update(query).digest('hex')
     const url = `${this.host}${this.path.order.open}?${query}&signature=${signature}`
     const headers = {
@@ -86,7 +86,7 @@ export default class BinanceRest {
       'Content-Type': 'application/x-www-form-urlencoded'
     }
     console.warn(url)
-    axios.post(url, {}, { headers })
+    axios.post(url, null, { headers })
       .then(response => {
         console.warn(response)
       })
