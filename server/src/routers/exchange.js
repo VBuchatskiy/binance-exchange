@@ -6,7 +6,7 @@ const exchange = new Router()
 
 exchange.get('/', (req, res) => {
   if (!Object.keys(req.query).length) {
-    new Binance({ host: config.endpoints.production.exchange })
+    new Binance()
       .indicators()
       .then(response => {
         res.json(response)

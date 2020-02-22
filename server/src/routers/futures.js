@@ -1,43 +1,26 @@
 import { Router } from 'express'
 import { Binance, BinanceRest } from '@@/api'
+import { Indicators } from '@@/Indicators'
 import config from '@/config/config'
 
 const futures = new Router()
 
-futures.all('/', (req, res) => {
+futures.all('/', async (req, res) => {
   if (!Object.keys(req.query).length) {
-    new BinanceRest().buy()
-      .then(response => {
-        res.send(response)
-      })
-      .catch(error => {
-        console.trace(error.stack)
-      })
-    // new BinanceRest().buy({ host: config.endpoints.test.futures })
-    //   .then(response => {
-    //     console.warn(response)
-    //   })
-    //   .catch(error => {
-    //     console.trace(error.stack)
-    //   })
-    // new Binance()
-    //   .indicators()
-    //   .then(response => {
-    //     response
-    //     res.json(response)
-    //   })
-    //   .catch(error => {
-    //     console.trace(error.message)
-    //   })
+    const binanceRest = new BinanceRest({ host: config.endpoints.test.futures })
+    const active = await binanceRest.active({ symbol: 'BTCUSDT' })
+    if (Object.keys(active).length) {
+      res.json(active)
+    } else {
+      const binance = new Binance({ host: config.endpoints.test.futures })
+      const klines = await binance.klines()
+      const indicators = new Indicators({ klines }).calculate()
+      // trigger
+      const order = await binanceRest.order({ symbol: 'BTCUSDT', side: 'BUY', timeInForce: 'GTC', type: 'LIMIT', quantity: 0.1, price: 9000 })
+      res.json(Object.assign({}, indicators, order))
+    }
   } else {
-    new Binance({ host: config.endpoints.test.futures })
-      .indicators({ symbol: req.query.symbol, interval: req.query.interval })
-      .then(response => {
-        res.json(response)
-      })
-      .catch(error => {
-        console.trace(error.stack)
-      })
+    console.warn('...')
   }
 })
 
