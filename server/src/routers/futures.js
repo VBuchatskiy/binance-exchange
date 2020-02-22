@@ -1,43 +1,44 @@
 import { Router } from 'express'
 import { Binance, BinanceRest } from '@@/api'
+import { Indicators } from '@@/Indicators'
 import config from '@/config/config'
 
 const futures = new Router()
 
-futures.all('/', (req, res) => {
+futures.all('/', async (req, res) => {
   if (!Object.keys(req.query).length) {
-    new BinanceRest().buy()
-      .then(response => {
-        res.send(response)
+    const binanceRest = new BinanceRest({ host: config.endpoints.test.futures })
+    const active = await binanceRest.active({ symbol: 'BTCUSDT' })
+    if (!Object.keys(active).length) {
+      const binance = new Binance({ host: config.endpoints.test.futures })
+      const klines = await binance.klines()
+      const indicators = new Indicators({ klines }).calculate()
+      // const order = await binanceRest.order({
+      //   params: {
+      //     symbol: 'BTCUSDT',
+      //     side: 'BUY',
+      //     type: 'LIMIT',
+      //     timeInForce: 'GTC',
+      //     price: 9000,
+      //     quantity: 0.001
+      //   },
+      //   method: 'POST'
+      // })
+      res.json(Object.assign({}, indicators))
+    } else {
+      const stop = await binanceRest.order({
+        params: {
+          symbol: 'BTCUSDT',
+          side: 'BUY',
+          type: 'LIMIT',
+          timeInForce: 'GTC',
+          price: 9000,
+          quantity: 0.001
+        },
+        method: 'POST'
       })
-      .catch(error => {
-        console.trace(error.stack)
-      })
-    // new BinanceRest().buy({ host: config.endpoints.test.futures })
-    //   .then(response => {
-    //     console.warn(response)
-    //   })
-    //   .catch(error => {
-    //     console.trace(error.stack)
-    //   })
-    // new Binance()
-    //   .indicators()
-    //   .then(response => {
-    //     response
-    //     res.json(response)
-    //   })
-    //   .catch(error => {
-    //     console.trace(error.message)
-    //   })
-  } else {
-    new Binance({ host: config.endpoints.test.futures })
-      .indicators({ symbol: req.query.symbol, interval: req.query.interval })
-      .then(response => {
-        res.json(response)
-      })
-      .catch(error => {
-        console.trace(error.stack)
-      })
+      res.json(Object.assign({}, stop))
+    }
   }
 })
 

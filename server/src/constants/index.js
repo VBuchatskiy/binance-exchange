@@ -1,4 +1,4 @@
-const KLINES = {
+const KLINES = Object.freeze({
   OPEN_TIME: 0,
   OPEN_PRICE: 1,
   HIGH_PRICE: 2,
@@ -11,9 +11,9 @@ const KLINES = {
   TAKER_BUY_BASE_ASSET_VOLUME: 9,
   TAKER_BUY_QUATE_ASSET_VOLUME: 10,
   IGNORE: 11
-}
+})
 
-const TRADES = {
+const TRADES = Object.freeze({
   ID: 'id',
   PRICE: 'price',
   QTY: 'qty',
@@ -21,9 +21,23 @@ const TRADES = {
   QUOTE: 'quoteQty',
   iSBUYERMAKER: 'isBuyerMaker',
   ISBESTMATCH: 'isBestMatch'
-}
+})
+
+const ORDER = Object.freeze({
+  SYDE: {
+    BUY: 'BUY',
+    STOP: 'SELL'
+  },
+  TYPE: {
+    LIMIT: 'LIMIT',
+    MARKET: 'MARKET',
+    STOP: 'STOP',
+    TAKE: 'TAKE_PROFIT'
+  }
+})
 
 export {
   KLINES,
-  TRADES
+  TRADES,
+  ORDER
 }
