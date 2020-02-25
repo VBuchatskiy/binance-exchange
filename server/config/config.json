@@ -9,4 +9,6 @@
       "future": "https://testnet.binancefuture.com/fapi/v1/"
     }
   },
+  "key": "",
+  "secret": ""
 }
