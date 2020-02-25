@@ -3,12 +3,18 @@ import config from '@/config/config'
 import crypto from 'crypto'
 import chalk from 'chalk'
 import querystring from 'querystring'
-// import querystring from 'querystring'
 export default class BinanceRest {
-  constructor({ host = config.endpoints.test.future } = {}) {
+  constructor({ host = config.endpoints.test.future }) {
     this.host = host
     this.timestamp = Date.now()
     this.recvWindow = 5000
+    this.path = {
+      account: 'account',
+      order: 'order',
+      active: 'openOrders',
+      balance: 'balance',
+      trades: 'userTrades'
+    }
     this.request = (() => {
       return axios.create({
         baseURL: this.host,
@@ -18,11 +24,6 @@ export default class BinanceRest {
         }
       })
     })()
-    this.path = {
-      account: 'account',
-      order: 'order',
-      active: 'openOrders'
-    }
   }
   assign(params = {}) {
     return crypto.createHmac('sha256', config.secret).update(querystring.stringify(params)).digest('hex')
@@ -41,10 +42,12 @@ export default class BinanceRest {
       console.warn(chalk.red(error, this.constructor.name))
     }
   }
-  async order(params = {}) {
-    console.warn(params)
+  async order({ method = 'GET', params = {} } = {}) {
     try {
-      const { data } = await this.request.post(`${this.path.order}?${this.query(params)}`)
+      const { data } = await this.request({
+        url: `${this.path.order}?${this.query(params)}`,
+        method
+      })
       return data
     }
     catch (error) {
@@ -55,6 +58,24 @@ export default class BinanceRest {
   async active(params = {}) {
     try {
       const { data } = await this.request.get(`${this.path.active}?${this.query(params)}`)
+      return data
+    }
+    catch (error) {
+      console.warn(chalk.red(error, this.constructor.name))
+    }
+  }
+  async balance(params = {}) {
+    try {
+      const { data } = await this.request.get(`${this.path.balance}?${this.query(params)}`)
+      return data
+    }
+    catch (error) {
+      console.warn(chalk.red(error, this.constructor.name))
+    }
+  }
+  async trades(params = {}) {
+    try {
+      const { data } = await this.request.get(`${this.path.trades}?${this.query(params)}`)
       return data
     }
     catch (error) {

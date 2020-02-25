@@ -9,18 +9,36 @@ futures.all('/', async (req, res) => {
   if (!Object.keys(req.query).length) {
     const binanceRest = new BinanceRest({ host: config.endpoints.test.futures })
     const active = await binanceRest.active({ symbol: 'BTCUSDT' })
-    if (Object.keys(active).length) {
-      res.json(active)
-    } else {
+    if (!Object.keys(active).length) {
       const binance = new Binance({ host: config.endpoints.test.futures })
       const klines = await binance.klines()
       const indicators = new Indicators({ klines }).calculate()
-      // trigger
-      const order = await binanceRest.order({ symbol: 'BTCUSDT', side: 'BUY', timeInForce: 'GTC', type: 'LIMIT', quantity: 0.1, price: 9000 })
-      res.json(Object.assign({}, indicators, order))
+      // const order = await binanceRest.order({
+      //   params: {
+      //     symbol: 'BTCUSDT',
+      //     side: 'BUY',
+      //     type: 'LIMIT',
+      //     timeInForce: 'GTC',
+      //     price: 9000,
+      //     quantity: 0.001
+      //   },
+      //   method: 'POST'
+      // })
+      res.json(Object.assign({}, indicators))
+    } else {
+      const stop = await binanceRest.order({
+        params: {
+          symbol: 'BTCUSDT',
+          side: 'BUY',
+          type: 'LIMIT',
+          timeInForce: 'GTC',
+          price: 9000,
+          quantity: 0.001
+        },
+        method: 'POST'
+      })
+      res.json(Object.assign({}, stop))
     }
-  } else {
-    console.warn('...')
   }
 })
 

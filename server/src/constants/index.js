@@ -25,8 +25,14 @@ const TRADES = Object.freeze({
 
 const ORDER = Object.freeze({
   SYDE: {
-    BUY: 'buy',
-    STOP: 'stop'
+    BUY: 'BUY',
+    STOP: 'SELL'
+  },
+  TYPE: {
+    LIMIT: 'LIMIT',
+    MARKET: 'MARKET',
+    STOP: 'STOP',
+    TAKE: 'TAKE_PROFIT'
   }
 })
 

@@ -1,6 +1,7 @@
 import axios from 'axios'
 import config from '@/config/config'
 import chalk from 'chalk'
+import querystring from 'querystring'
 export default class Binance {
   constructor({ host = config.endpoints.production.exchange } = {}) {
     this.host = host
@@ -12,35 +13,34 @@ export default class Binance {
       trades: 'trades',
       klines: 'klines'
     }
+    this.request = (() => {
+      return axios.create({
+        baseURL: this.host
+      })
+    })()
   }
-  async klines({ symbol = 'BTCUSDT', interval = '4h', limit = 120 } = {}) {
-    const base = `${this.host}${this.path.klines}`
-    const query = `?symbol=${symbol.toUpperCase()}&interval=${interval}&limit=${limit}`
-    const url = base.concat(query)
+  query(params = {}) {
+    return querystring.stringify(params)
+  }
+  async klines({ params = { symbol: 'BTCUSDT', interval: '4h', limit: 120 } } = {}) {
     try {
-      const { data } = await axios.get(url)
+      const { data } = await this.request.get(`${this.path.klines}?${this.query(params)}`)
       return data
     } catch (error) {
       console.warn(chalk.red(error, this.constructor.name))
     }
   }
-  async trades({ symbol = 'BTCUSDT', limit = 1 } = {}) {
-    const base = `${this.host}${this.path.trades}`
-    const query = `?symbol=${symbol.toUpperCase()}&limit=${limit}`
-    const url = base.concat(query)
+  async trades({ params = { symbol: 'BTCUSDT', limit: 1 } } = {}) {
     try {
-      const { data } = await axios.get(url)
+      const { data } = await this.request.get(`${this.path.trades}?${this.query(params)}`)
       return data
     } catch (error) {
       console.warn(chalk.red(error, this.constructor.name))
     }
   }
-  async depth({ symbol = 'BTCUSDT', limit = 5 } = {}) {
-    const base = `${this.host}${this.path.depth}`
-    const query = `?symbol=${symbol.toUpperCase()}&limit=${limit}`
-    const url = base.concat(query)
+  async depth({ params = { symbol: 'BTCUSDT', limit: 5 } } = {}) {
     try {
-      const { data } = await axios.get(url)
+      const { data } = await this.request.get(`${this.path.depth}?${this.query(params)}`)
       return data
     } catch (error) {
       console.warn(chalk.red(error, this.constructor.name))
