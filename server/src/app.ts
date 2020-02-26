@@ -4,7 +4,7 @@ import logger from 'morgan'
 import chalk from 'chalk'
 import parser from 'body-parser'
 import { exchange, futures } from '@@/routers'
-import { port } from '@/config/config'
+// import { port } from '@@/config/config'
 
 const app = express()
 
@@ -15,6 +15,6 @@ app.use(cors())
 app.use('/exchange', exchange)
 app.use('/futures', futures)
 
-app.listen(port, () => {
-  console.log(chalk.cyan(`http://localhost:${port}/`))
+app.listen(3000, () => {
+  console.warn(chalk.cyan(`http://localhost:3000/`))
 })

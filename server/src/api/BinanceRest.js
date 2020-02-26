@@ -1,11 +1,12 @@
 import axios from 'axios'
-import config from '@/config/config'
 import crypto from 'crypto'
 import chalk from 'chalk'
 import querystring from 'querystring'
 export default class BinanceRest {
-  constructor({ host = config.endpoints.test.future }) {
+  constructor({ host = null, key = null, secret = null }) {
     this.host = host
+    this.key = key
+    this.secret = secret
     this.timestamp = Date.now()
     this.recvWindow = 5000
     this.path = {
@@ -19,14 +20,14 @@ export default class BinanceRest {
       return axios.create({
         baseURL: this.host,
         headers: {
-          'X-MBX-APIKEY': config.key,
+          'X-MBX-APIKEY': this.key,
           'Content-Type': 'application/x-www-form-urlencoded'
         }
       })
     })()
   }
   assign(params = {}) {
-    return crypto.createHmac('sha256', config.secret).update(querystring.stringify(params)).digest('hex')
+    return crypto.createHmac('sha256', this.secret).update(querystring.stringify(params)).digest('hex')
   }
   query(params = {}) {
     Object.assign(params, { recvWindow: this.recvWindow, timestamp: this.timestamp })
@@ -42,7 +43,7 @@ export default class BinanceRest {
       console.warn(chalk.red(error, this.constructor.name))
     }
   }
-  async order({ method = 'GET', params = {} } = {}) {
+  async order({ method, params = {} } = {}) {
     try {
       const { data } = await this.request({
         url: `${this.path.order}?${this.query(params)}`,

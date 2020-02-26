@@ -1,8 +1,8 @@
 import { Router } from 'express'
 import { Binance } from '@@/api'
-import config from '@/config/config'
+import config from '@@/config/config'
 
-const exchange = new Router()
+const exchange = Router()
 
 exchange.get('/', (req, res) => {
   if (!Object.keys(req.query).length) {
