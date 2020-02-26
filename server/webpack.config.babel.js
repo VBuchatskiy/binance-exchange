@@ -6,10 +6,12 @@ const paths = {
   entrys: {
     root: resolve(__dirname),
     src: resolve(__dirname, 'src'),
-    server: resolve(__dirname, 'src', 'app.js')
+    server: resolve(__dirname, 'src', 'app.ts')
   },
   output: resolve(__dirname, 'build')
 }
+
+const exclude = ['/node_modules/']
 
 export default {
   mode: 'development',
@@ -24,7 +26,7 @@ export default {
   },
   resolve: {
     modules: [paths.entrys.root, 'node_modules'],
-    extensions: ['.js', '.json'],
+    extensions: ['.ts', '.js', '.json'],
     alias: {
       '@': paths.entrys.root,
       '@@': paths.entrys.src
@@ -34,7 +36,7 @@ export default {
     rules: [
       {
         test: /\.js$/,
-        exclude: /node_modules/,
+        exclude: exclude,
         use: [
           {
             loader: 'babel-loader'
@@ -42,12 +44,29 @@ export default {
           {
             loader: 'eslint-loader'
           }]
+      },
+      {
+        test: /\.ts$/,
+        exclude: exclude,
+        include: paths.entrys.src,
+        use: [
+          {
+            loader: 'ts-loader'
+          },
+          {
+            loader: 'babel-loader'
+          },
+          {
+            loader: 'tslint-loader'
+          }
+        ]
       }
+
     ]
   },
   watch: true,
   watchOptions: {
-    ignored: /node_modules/
+    ignored: exclude
   },
   stats: {
     colors: true,

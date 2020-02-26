@@ -1,0 +1,49 @@
+{
+  "extends": "tslint:recommended",
+  "rules": {
+    "indent": [
+      true,
+      "spaces",
+      2
+    ],
+    "quotemark": [
+      true,
+      "single"
+    ],
+    "object-literal-sort-keys": true,
+    "trailing-comma": false,
+    "class-name": true,
+    "semicolon": [
+      true,
+      "never"
+    ],
+    "triple-equals": [
+      true,
+      "allow-null-check"
+    ],
+    "eofline": true,
+    "jsdoc-format": true,
+    "member-access": true,
+    "whitespace": [
+      true,
+      "check-decl",
+      "check-operator",
+      "check-separator",
+      "check-type"
+    ],
+    "no-require-imports": true,
+    "no-reference": true,
+    "ordered-imports": [
+      true,
+      {
+        "named-imports-order": true,
+        "grouped-imports": true
+      }
+    ],
+    "no-trailing-whitespace": true,
+    "no-submodule-imports": false,
+    "no-implicit-imports": true,
+    "no-console": false
+  },
+  "rulesDirectory": []
+}

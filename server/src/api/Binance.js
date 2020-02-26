@@ -1,9 +1,8 @@
 import axios from 'axios'
-import config from '@/config/config'
 import chalk from 'chalk'
 import querystring from 'querystring'
 export default class Binance {
-  constructor({ host = config.endpoints.production.exchange } = {}) {
+  constructor({ host = null }) {
     this.host = host
     this.path = {
       ping: 'ping',
