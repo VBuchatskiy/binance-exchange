@@ -1,3 +1,4 @@
+// import tsconfig from './tsconfig'
 import externals from 'webpack-node-externals'
 import nodemon from 'nodemon-webpack-plugin'
 import { resolve } from 'path'
@@ -6,7 +7,7 @@ const paths = {
   entrys: {
     root: resolve(__dirname),
     src: resolve(__dirname, 'src'),
-    server: resolve(__dirname, 'src', 'app.ts')
+    server: resolve(__dirname, 'src', 'app.js')
   },
   output: resolve(__dirname, 'build')
 }
@@ -25,6 +26,7 @@ export default {
     path: paths.output
   },
   resolve: {
+    mainFields: ['browser', 'module', 'main'],
     modules: [paths.entrys.root, 'node_modules'],
     extensions: ['.ts', '.js', '.json'],
     alias: {

@@ -9,8 +9,8 @@
     "noImplicitAny": true,
     "removeComments": true,
     "resolveJsonModule": true,
-    "pretty": false,
-    "baseUrl": ".",
+    "pretty": true,
+    "baseUrl": "./",
     "types": [
       "node"
     ],
@@ -19,13 +19,14 @@
     ],
     "paths": {
       "@@/*": [
-        "src/*"
+        "src/*",
+        "api/Binance"
+      ],
+      "@/*": [
+        "config/config.json"
       ]
     }
   },
-  "include": [
-    "src/**/*"
-  ],
   "exclude": [
     "node_modules"
   ]

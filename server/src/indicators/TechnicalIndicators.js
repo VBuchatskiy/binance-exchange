@@ -1,11 +1,14 @@
-const TechnicalIndicators = require('technicalindicators')
-const RSI = TechnicalIndicators.rsi
-const BollingerBands = TechnicalIndicators.bollingerbands
-const MACD = TechnicalIndicators.macd
-const SMA = TechnicalIndicators.sma
-const MorningStar = TechnicalIndicators.morningstar
-const BullishHammer = TechnicalIndicators.bullishhammerstick
-const Stochastic = TechnicalIndicators.stochastic
+const Technicalindicators = require('technicalindicators')
+// import Technicalindicators from 'technicalindicators/lib'
+
+// const technicalindicators = Technicalindicators()
+const RSI = Technicalindicators.rsi
+const BollingerBands = Technicalindicators.bollingerbands
+const MACD = Technicalindicators.macd
+const SMA = Technicalindicators.sma
+const MorningStar = Technicalindicators.morningstar
+const BullishHammer = Technicalindicators.bullishhammerstick
+const Stochastic = Technicalindicators.stochastic
 
 export {
   RSI,
