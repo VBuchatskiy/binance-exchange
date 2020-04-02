@@ -34,7 +34,7 @@
     "no-require-imports": true,
     "no-reference": true,
     "ordered-imports": [
-      true,
+      false,
       {
         "named-imports-order": true,
         "grouped-imports": true
@@ -42,7 +42,7 @@
     ],
     "no-trailing-whitespace": true,
     "no-submodule-imports": false,
-    "no-implicit-imports": true,
+    "no-implicit-imports": false,
     "no-console": false
   },
   "rulesDirectory": []

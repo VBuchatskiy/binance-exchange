@@ -2,18 +2,19 @@ import axios from 'axios'
 import chalk from 'chalk'
 import crypto from 'crypto'
 import querystring from 'querystring'
-import config from '@@/config/config'
+import config from '@/config/config'
 
-export default class Binance {
+class Binance {
   constructor({ recvWindow = 5000 } = {}) {
     this.host = config.endpoints.test.future
-    this.timestamp = Date.now()
+    this.key = config.key
+    this.secret = config.secret
     this.recvWindow = recvWindow
     this.request = (() => {
       return axios.create({
         baseURL: this.host,
         headers: {
-          'X-MBX-APIKEY': config.key,
+          'X-MBX-APIKEY': this.key,
           'Content-Type': 'application/x-www-form-urlencoded'
         }
       })
@@ -21,19 +22,19 @@ export default class Binance {
   }
 
   assign(query = {}) {
-    return crypto.createHmac('sha256', config.secret).update(querystring.stringify(query)).digest('hex')
+    return crypto.createHmac('sha256', this.secret).update(querystring.stringify(query)).digest('hex')
   }
 
-  query({ path = '', query = '' } = {}) {
-    if (query) {
-      Object.assign(query, { recvWindow: this.recvWindow, timestamp: this.timestamp })
-      Object.assign(query, { signature: this.assign(query) })
-      return path.concat('?', querystring.stringify(query))
+  query({ path = '', params = '' } = {}) {
+    if (params) {
+      Object.assign(params, { recvWindow: this.recvWindow, timestamp: Date.now() })
+      Object.assign(params, { signature: this.assign(params) })
+      return path.concat('?', querystring.stringify(params))
     } else {
       return path
     }
   }
-
+  // Test connectivity to the Rest API
   async ping() {
     try {
       const { data } = await this.request.get(this.query({ path: this.ping.name }))
@@ -43,7 +44,7 @@ export default class Binance {
       console.trace(chalk.red(error, this.constructor.name, this.ping.name))
     }
   }
-
+  // Test connectivity to the Rest API and get the current server time
   async time() {
     try {
       const { data } = await this.request.get(this.query({ path: this.time.name }))
@@ -53,7 +54,7 @@ export default class Binance {
       console.trace(chalk.red(error, this.constructor.name, this.time.name))
     }
   }
-
+  // Current exchange trading rules and symbol information
   async exchangeInfo() {
     try {
       const { data } = await this.request.get(this.query({ path: this.exchangeInfo.name }))
@@ -63,11 +64,11 @@ export default class Binance {
       console.trace(chalk.red(error, this.constructor.name, this.exchangeInfo.name))
     }
   }
-
-  async depth({ params = { symbol: '', limits: 1000 } } = {}) {
+  // Adjusted based on the limit
+  async depth({ params = { symbol: '', limits: 50 } } = {}) {
     if (params.symbol) {
       try {
-        const { data } = await this.request.get(this.query({ path: this.depth.name, query: params }))
+        const { data } = await this.request.get(this.query({ path: this.depth.name, params }))
         return data
       } catch (error) {
         console.trace(chalk.red(error, this.constructor.name, this.depth.name))
@@ -76,11 +77,11 @@ export default class Binance {
       throw console.trace(chalk.red(new Error('missing mandatory param symbol')))
     }
   }
-
-  async trades({ params = { symbol: '', limits: 500 } }) {
+  // Get recent trades (up to last 24h).
+  async trades({ params = { symbol: '', limits: 500 } } = {}) {
     if (params.symbol) {
       try {
-        const { data } = await this.request.get(this.query({ path: this.trades.name, query: params }))
+        const { data } = await this.request.get(this.query({ path: this.trades.name, params }))
         return data
       } catch (error) {
         console.trace(chalk.red(error, this.constructor.name, this.trades.name))
@@ -89,11 +90,11 @@ export default class Binance {
       throw console.trace(chalk.red(new Error('missing mandatory param symbol')))
     }
   }
-
-  async historicalTrades({ params = { symbol: '', limits: 500, fromid: '' } }) {
+  // Get older market historical trades
+  async historicalTrades({ params = { symbol: '', limits: 500, fromid: '' } } = {}) {
     if (params.symbol) {
       try {
-        const { data } = await this.request.get(this.query({ path: this.historicalTrades.name, query: params }))
+        const { data } = await this.request.get(this.query({ path: this.historicalTrades.name, params }))
         return data
       } catch (error) {
         console.trace(chalk.red(error, this.constructor.name, this.historicalTrades.name))
@@ -102,11 +103,11 @@ export default class Binance {
       throw console.trace(chalk.red(new Error('missing mandatory param symbol')))
     }
   }
-
-  async aggTrades({ params = { symbol: '', limit: 500, fromId: '', startTime: 0, endTime: 0 } }) {
+  // Get compressed, aggregate trades. Trades that fill at the time, from the same order, with the same price will have the quantity aggregated
+  async aggTrades({ params = { symbol: '', limit: 500, fromId: '', startTime: 0, endTime: 0 } } = {}) {
     if (params.symbol) {
       try {
-        const { data } = await this.request.get(this.query({ path: this.aggTrades.name, query: params }))
+        const { data } = await this.request.get(this.query({ path: this.aggTrades.name, params }))
         return data
       } catch (error) {
         console.trace(chalk.red(error, this.constructor.name, this.aggTrades.name))
@@ -115,11 +116,12 @@ export default class Binance {
       throw console.trace(chalk.red(new Error('missing mandatory param symbol')))
     }
   }
-
-  async klines({ params = { symbol: '', interval: 0, limit: 500, startTime: 0, endTime: 0 } }) {
+  // If both startTime and endTime are sent, time between startTime and endTime must be less than 1 hour
+  // If fromId, startTime, and endTime are not sent, the most recent aggregate trades will be returned
+  async klines({ params = { symbol: '', interval: 0, limit: 500, startTime: 0, endTime: 0 } } = {}) {
     if (params.symbol && params.interval) {
       try {
-        const { data } = await this.request.get(this.query({ path: this.klines.name, query: params }))
+        const { data } = await this.request.get(this.query({ path: this.klines.name, params }))
         return data
       } catch (error) {
         console.trace(chalk.red(error, this.constructor.name, this.klines.name))
@@ -128,21 +130,22 @@ export default class Binance {
       throw console.trace(chalk.red(new Error('missing mandatory param')))
     }
   }
-
-  async premiumIndex({ params = { symbol: '' } }) {
+  // Mark Price and Funding Rate
+  async premiumIndex({ params = { symbol: '' } } = {}) {
     try {
-      const { data } = await this.request.get(this.query({ path: this.premiumIndex.name, query: params }))
+      const { data } = await this.request.get(this.query({ path: this.premiumIndex.name, params }))
       return data
     }
     catch (error) {
       console.trace(chalk.red(error, this.constructor.name, this.premiumIndex.name))
     }
   }
-
-  async fundingRate({ params = { symbol: '', limit: 100, startTime: 0, endTime: 0 } }) {
+  // 24 hour rolling window price change statistics
+  // Careful when accessing this with no symbol
+  async fundingRate({ params = { symbol: '', limit: 100, startTime: 0, endTime: 0 } } = {}) {
     if (params.symbol) {
       try {
-        const { data } = await this.request.get(this.query({ path: this.fundingRate.name, query: params }))
+        const { data } = await this.request.get(this.query({ path: this.fundingRate.name, params }))
         return data
       } catch (error) {
         console.trace(chalk.red(error, this.constructor.name, this.fundingRate.name))
@@ -151,48 +154,49 @@ export default class Binance {
       throw console.trace(chalk.red(new Error('missing mandatory param symbol')))
     }
   }
-
-  async tickerDay({ params = { symbol: '' } }) {
+  // 24 hour rolling window price change statistics
+  // Careful when accessing this with no symbol
+  async tickerDay({ params = { symbol: '' } } = {}) {
     try {
-      const { data } = await this.request.get(this.query({ path: '/ticker/24hr', query: params }))
+      const { data } = await this.request.get(this.query({ path: '/ticker/24hr', params }))
       return data
     } catch (error) {
       console.trace(chalk.red(error, this.constructor.name, this.tickerDay.name))
     }
   }
-
-  async tickerPrice({ params = { symbol: '' } }) {
+  // 1 for a single symbol;
+  // 2 when the symbol parameter is omitted
+  async tickerPrice({ params = { symbol: '' } } = {}) {
     try {
-      const { data } = await this.request.get(this.query({ path: '/ticker/price', query: params }))
+      const { data } = await this.request.get(this.query({ path: '/ticker/price', params }))
       return data
     } catch (error) {
       console.trace(chalk.red(error, this.constructor.name, this.tickerPrice.name))
     }
   }
-
-  async tickerBookTicker({ params = { symbol: '' } }) {
+  //  Best price/qty on the order book for a symbol or symbols
+  async bookTicker({ params = { symbol: '' } } = {}) {
     try {
-      const { data } = await this.request.get(this.query({ path: '/ticker/bookTicker', query: params }))
+      const { data } = await this.request.get(this.query({ path: '/ticker/bookTicker', params }))
       return data
     } catch (error) {
-      console.trace(chalk.red(error, this.constructor.name, this.tickerBookTicker.name))
+      console.trace(chalk.red(error, this.constructor.name, this.bookTicker.name))
     }
   }
 
-  async allForceOrders({ params = { symbol: '', startTime: '', endTime: '', limit: 100 } }) {
+  async allForceOrders({ params = { symbol: '', startTime: '', endTime: '', limit: 100 } } = {}) {
     try {
-      const { data } = await this.request.get(this.query({ path: this.allForceOrders.name, query: params }))
+      const { data } = await this.request.get(this.query({ path: this.allForceOrders.name, params }))
       return data
     } catch (error) {
       console.trace(chalk.red(error, this.constructor.name, this.allForceOrders.name))
     }
   }
-
-
-  async openInterest({ params = { symbol: '' } }) {
+  // Get present open interest of a specific symbol
+  async openInterest({ params = { symbol: '' } } = {}) {
     if (params.symbol) {
       try {
-        const { data } = await this.request.get(this.query({ path: this.openInterest.name, query: params }))
+        const { data } = await this.request.get(this.query({ path: this.openInterest.name, params }))
         return data
       } catch (error) {
         console.trace(chalk.red(error, this.constructor.name, this.openInterest.name))
@@ -202,24 +206,23 @@ export default class Binance {
     }
   }
 
-  async leverageBracket({ params = { symbol: '' } }) {
+  async leverageBracket({ params = { symbol: '' } } = {}) {
     try {
-      const { data } = await this.request.get(this.query({ path: this.leverageBracket.name, query: params }))
+      const { data } = await this.request.get(this.query({ path: this.leverageBracket.name, params }))
       return data
     } catch (error) {
       console.trace(chalk.red(error, this.constructor.name, this.leverageBracket.name))
     }
   }
+
   // open delete get status of orders
-  async order({ method = '', params = { symbol: '', side: '', type: '', quantity: 0, stopPrice: 0, price: 0, reduceOnly: false, workingType: 'CONTRACT_PRICE', timeInForce: 'GTC', activationPrice: 0, callbackRate: 0, newClientOrderId: '', orderId: '' } }) {
+  async order({ method = '', params = { symbol: '', side: '', type: '', quantity: 0, stopPrice: 0, price: 0, reduceOnly: false, workingType: 'CONTRACT_PRICE', timeInForce: 'GTC', activationPrice: 0, callbackRate: 0, newClientOrderId: '', orderId: '' } } = {}) {
     const path = this.order.name
-    const query = params
     switch (method) {
       case 'GET': {
-        // check an order`s status
         if (params.symbol && params.orderId) {
           try {
-            const { data } = await this.request.get(this.query({ path, query }))
+            const { data } = await this.request.get(this.query({ path, params }))
             return data
           } catch (error) {
             console.trace(chalk.red(error, this.constructor.name, this.order.name))
@@ -232,10 +235,11 @@ export default class Binance {
       case 'POST': {
         switch (params.type) {
           case 'LIMIT': {
+            console.warn(this.query({ path, params }))
             if (params.symbol && params.side && params.quantity && params.price && params.timeInForce) {
               try {
                 const { data } = await this.request({
-                  url: this.query({ path, query }),
+                  url: this.query({ path, params }),
                   method
                 })
                 return data
@@ -251,7 +255,7 @@ export default class Binance {
             if (params.symbol && params.side && params.quantity && params.price && params.stopPrice) {
               try {
                 const { data } = await this.request({
-                  url: this.query({ path, query }),
+                  url: this.query({ path, params }),
                   method
                 })
                 return data
@@ -268,7 +272,7 @@ export default class Binance {
             if (params.symbol && params.side && params.quantity && params.stopPrice) {
               try {
                 const { data } = await this.request({
-                  url: this.query({ path, query }),
+                  url: this.query({ path, params }),
                   method
                 })
                 return data
@@ -282,7 +286,7 @@ export default class Binance {
             if (params.symbol && params.side && params.quantity && params.callbackRate) {
               try {
                 const { data } = await this.request({
-                  url: this.query({ path, query }),
+                  url: this.query({ path, params }),
                   method
                 })
                 return data
@@ -300,7 +304,7 @@ export default class Binance {
         if (params.symbol) {
           try {
             const { data } = await this.request({
-              url: this.query({ path, query }),
+              url: this.query({ path, params }),
               method
             })
             return data
@@ -322,10 +326,10 @@ export default class Binance {
     }
   }
 
-  async batchOrders({ params = { symbol: '', orderList: '', origClientOrderIdList: '' } }) {
+  async batchOrders({ params = { symbol: '', orderList: '', origClientOrderIdList: '' } } = {}) {
     if (params.symbol) {
       try {
-        const { data } = await this.request.delete(this.query({ path: this.batchOrders.name, query: params }))
+        const { data } = await this.request.delete(this.query({ path: this.batchOrders.name, params }))
         return data
       } catch (error) {
         console.trace(chalk.red(error, this.constructor.name, this.batchOrders.name))
@@ -335,19 +339,19 @@ export default class Binance {
     }
   }
 
-  async openOrder({ params = { symbol: '', orderId: '', origClientOrderIdList: '' } }) {
+  async openOrder({ params = { symbol: '', orderId: '', origClientOrderIdList: '' } } = {}) {
     try {
-      const { data } = await this.request.get(this.query({ path: this.openOrder.name, query: params }))
+      const { data } = await this.request.get(this.query({ path: this.openOrder.name, params }))
       return data
     } catch (error) {
       console.trace(chalk.red(error, this.constructor.name, this.openOrder.name))
     }
   }
 
-  async openOrders({ params = { symbol: '' } }) {
+  async openOrders({ params = { symbol: '' } } = {}) {
     if (params.symbol) {
       try {
-        const { data } = await this.request.get(this.query({ path: this.openOrders.name, query: params }))
+        const { data } = await this.request.get(this.query({ path: this.openOrders.name, params }))
         return data
       } catch (error) {
         console.trace(chalk.red(error, this.constructor.name, this.openOrders))
@@ -357,10 +361,10 @@ export default class Binance {
     }
   }
 
-  async allOrders({ params = { symbol: '', orderId: '', startTime: 0, endTime: 0, limit: 500 } }) {
+  async allOrders({ params = { symbol: '', orderId: '', startTime: 0, endTime: 0, limit: 500 } } = {}) {
     if (params.symbol) {
       try {
-        const { data } = await this.request.get(this.query({ path: this.allOrders.name, query: params }))
+        const { data } = await this.request.get(this.query({ path: this.allOrders.name, params }))
         return data
       } catch (error) {
         console.trace(chalk.red(error, this.constructor.name, this.allOrders.name))
@@ -389,10 +393,10 @@ export default class Binance {
     }
   }
 
-  async leverage({ params = { symbol: '', leverage: 0 } }) {
+  async leverage({ params = { symbol: '', leverage: 0 } } = {}) {
     if (params.symbol && params.leverage) {
       try {
-        const { data } = await this.request.post(this.query({ path: this.leverage, query: params }))
+        const { data } = await this.request.post(this.query({ path: this.leverage, params }))
         return data
       } catch (error) {
         console.trace(chalk.red(error, this.constructor.name, this.leverage.name))
@@ -402,10 +406,10 @@ export default class Binance {
     }
   }
   //ISOLATED, CROSSED
-  async marginType({ params = { symbol: '', marginType: '' } }) {
+  async marginType({ params = { symbol: '', marginType: '' } } = {}) {
     if (params.symbol && params.marginType) {
       try {
-        const { data } = await this.request.post(this.query({ path: this.marginType, query: params }))
+        const { data } = await this.request.post(this.query({ path: this.marginType, params }))
         return data
       } catch (error) {
         console.trace(chalk.red(error, this.constructor.name, this.marginType.name))
@@ -415,10 +419,10 @@ export default class Binance {
     }
   }
   //1: Add postion margin，2: Reduce postion margin
-  async positionMargin({ params = { symbol: '', amount: 0, type: 0 } }) {
+  async positionMargin({ params = { symbol: '', amount: 0, type: 0 } } = {}) {
     if (params.symbol && params.amount) {
       try {
-        const { data } = await this.request.get(this.query({ path: this.positionMargin, query: params }))
+        const { data } = await this.request.get(this.query({ path: this.positionMargin, params }))
         return data
       } catch (error) {
         console.trace(chalk.red(error, this.constructor.name, this.positionMargin.name))
@@ -437,7 +441,7 @@ export default class Binance {
     }
   }
 
-  async userTrades({ params = { symbol: '', startTime: 0, endTime: 0, fromId: 0, limit: 500 } }) {
+  async userTrades({ params = { symbol: '', startTime: 0, endTime: 0, fromId: 0, limit: 500 } } = {}) {
     if (params.symbol) {
       try {
         const { data } = await this.request.get(this.query({ path: this.userTrades.name }))
@@ -450,7 +454,7 @@ export default class Binance {
     }
   }
 
-  async income({ params = { symbol: '', incomeType: '', startTime: 0, endTime: 0, limit: 100 } }) {
+  async income({ params = { symbol: '', incomeType: '', startTime: 0, endTime: 0, limit: 100 } } = {}) {
     if (params.symbol) {
       try {
         const { data } = await this.request.get(this.query({ path: this.income.name }))
@@ -462,4 +466,17 @@ export default class Binance {
       throw console.trace(chalk.red(new Error('missing mandatory param')))
     }
   }
+
+  async listenKey() {
+    try {
+      const { data } = await this.request.post(this.query({ path: this.listenKey.name }))
+      return data
+    } catch (error) {
+      console.trace(chalk.red(error, this.constructor.name, this.userDataStream.name))
+    }
+  }
+}
+
+export {
+  Binance
 }

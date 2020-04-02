@@ -71,12 +71,14 @@
         </ul>
       </template>
     </section>
+    <!-- <pre>{{ stream }}</pre> -->
   </section>
 </template>
 
 <script>
-import axios from "axios";
-import Vue from "vue";
+import { Binance } from "./api/Binance";
+import { BinanceWS } from "./api/BinanceWS";
+
 export default {
   name: "App",
   data() {
@@ -107,125 +109,32 @@ export default {
       }
     };
   },
-  methods: {
-    load() {
-      const entry = [
-        "http://localhost:3000/exchange",
-        "http://localhost:3000/futures"
-      ];
-      const base =
-        this.selected.options.market.name === "exchange" ? entry[0] : entry[1];
-      const url = `${base}?symbol=${this.selected.options.symbol.name}&interval=${this.selected.options.interval.value}`;
-      this.active = true;
-      if (this.timer) {
-        clearInterval(this.timer);
-        this.active = false;
-        this.timer = 0;
-        return;
-      }
-      this.timer = setInterval(() => {
-        axios
-          .get(url)
-          .then(respose => {
-            const { data } = respose;
-            this.addOrder(data);
-            this.addHistory(data);
-          })
-          .catch(error => {
-            console.error(error.message);
-          });
-      }, 2000);
-    },
-    notification() {
-      this.audio.play();
-    },
-    addOrder(respose) {
-      if (!Object.keys(this.orders.active).length && respose.order) {
-        this.orders.active = respose.order;
-      }
-    },
-    addHistory(respose) {
-      if (Object.keys(this.orders.active).length) {
-        const open = this.orders.active.timestamp;
-        const close = respose.timestamp;
-        const entry = this.orders.active.entry;
-        const take = this.orders.active.take;
-        const stop = this.orders.active.stop;
-        const profit = this.orders.active.take - this.orders.active.entry;
-        const price = parseFloat(respose.trade.price);
-        const type = this.orders.active.type;
-        const data = {
-          open,
-          close,
-          entry,
-          price,
-          take,
-          stop,
-          profit,
-          type
-        };
-
-        if (this.orders.active.type === "long") {
-          if (this.orders.active.take <= price) {
-            Vue.set(this.orders.history, respose.timestamp, data);
-            this.orders.active = {};
-          }
-          if (this.orders.active.stop >= price) {
-            Vue.set(this.orders.history, respose.timestamp, data);
-            this.orders.active = {};
-          }
-        }
-        if (this.orders.active.type === "short") {
-          if (this.orders.active.take >= price) {
-            Vue.set(this.orders.history, respose.timestamp, data);
-            this.orders.active = {};
-          }
-          if (this.orders.active.stop <= price) {
-            Vue.set(this.orders.history, respose.timestamp, data);
-            this.orders.active = {};
-          }
-        }
-      }
-    }
+  async mounted() {
+    const binance = new Binance();
+    const binanceWS = new BinanceWS();
+    // const params = { params: { symbol: "BTCUSDT" } };
+    // const ping = await binance.ping();
+    // const time = await binance.time();
+    // const exchangeInfo = await binance.exchangeInfo(params);
+    // const depth = await binance.depth(params);
+    // const trades = await binance.trades(params);
+    // const historicalTrades = await binance.historicalTrades(params);
+    // const aggTrades = await binance.aggTrades(params);
+    // const klines = await binance.klines({
+    //   params: { symbol: "BTCUSDT", interval: "1h" }
+    // });
+    // const leverageBracket = await binance.leverageBracket(params);
+    // const premiumIndex = await binance.premiumIndex(params);
+    // const tickerDay = await binance.tickerDay(params);
+    // const tickerPrice = await binance.tickerPrice(params);
+    // const allForceOrders = await binance.allForceOrders(params);
+    const { listenKey } = await binance.listenKey();
+    binanceWS.userData(listenKey, event => {
+      console.warn(event);
+    });
   },
-  computed: {
-    history() {
-      return this.orders.history;
-    }
-  },
-  watch: {
-    history() {
-      this.notification();
-    }
-  }
+  methods: {},
+  computed: {},
+  watch: {}
 };
 </script>
-
-<style lang="css" scoped>
-ul {
-  padding: 0;
-  margin: 0;
-  list-style: none;
-}
-button {
-  height: 2em;
-}
-select {
-  height: 2em;
-  width: 16em;
-}
-.order-bar {
-  display: flex;
-  justify-content: space-between;
-  padding-top: 1em;
-}
-
-span::first-letter {
-  text-transform: uppercase;
-}
-
-.order-bar__history,
-.order-bar__active {
-  width: 50%;
-}
-</style>
