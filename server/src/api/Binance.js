@@ -1,465 +1,480 @@
-import axios from 'axios'
-import chalk from 'chalk'
+import fetch from 'node-fetch'
 import crypto from 'crypto'
 import querystring from 'querystring'
-import config from '@@/config/config'
 
-export default class Binance {
-  constructor({ recvWindow = 5000 } = {}) {
-    this.host = config.endpoints.test.future
-    this.timestamp = Date.now()
+class Binance {
+  constructor({ host = '', key = '', secret = '', recvWindow = 5000 } = {}) {
+    this.host = host
+    this.key = key
+    this.secret = secret
     this.recvWindow = recvWindow
-    this.request = (() => {
-      return axios.create({
-        baseURL: this.host,
-        headers: {
-          'X-MBX-APIKEY': config.key,
-          'Content-Type': 'application/x-www-form-urlencoded'
+  }
+
+  request(path = '', { method = 'GET' } = {}) {
+    return fetch(`${this.host}${path}`, {
+      method,
+      headers: {
+        'X-MBX-APIKEY': this.key,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    }).then(response => {
+      if (!response.ok) {
+        throw {
+          name: `Error in request to ${path}`,
+          code: response.status,
+          message: response.statusText
         }
-      })
-    })()
+      }
+
+      return response.json()
+    })
   }
 
-  assign(query = {}) {
-    return crypto.createHmac('sha256', config.secret).update(querystring.stringify(query)).digest('hex')
+  sign(query = {}) {
+    return crypto
+      .createHmac('sha256', this.secret)
+      .update(querystring.stringify(query))
+      .digest('hex')
   }
 
-  query({ path = '', query = '' } = {}) {
-    if (query) {
-      Object.assign(query, { recvWindow: this.recvWindow, timestamp: this.timestamp })
-      Object.assign(query, { signature: this.assign(query) })
-      return path.concat('?', querystring.stringify(query))
-    } else {
-      return path
-    }
-  }
+  query({ path = '', params = {} } = {}) {
+    Object.assign(params, { recvWindow: this.recvWindow, timestamp: Date.now() })
+    Object.assign(params, { signature: this.sign(params) })
 
+    return path.concat('?', querystring.stringify(params))
+  }
+  // Description: test connectivity to the rest API
+  // Weight: 1
   async ping() {
-    try {
-      const { data } = await this.request.get(this.query({ path: this.ping.name }))
-      return data
-    }
-    catch (error) {
-      console.trace(chalk.red(error, this.constructor.name, this.ping.name))
-    }
+    return this.request(
+      this.query({
+        path: this.ping.name
+      })
+    )
   }
-
+  // Description: test connectivity to the rest API and get the current server time
+  // Weight: 1
   async time() {
-    try {
-      const { data } = await this.request.get(this.query({ path: this.time.name }))
-      return data
-    }
-    catch (error) {
-      console.trace(chalk.red(error, this.constructor.name, this.time.name))
-    }
+    return this.request(
+      this.query({
+        path: this.time.name
+      })
+    )
   }
-
+  // Description: get current exchange trading rules and symbol information
+  // Weight: 1
   async exchangeInfo() {
-    try {
-      const { data } = await this.request.get(this.query({ path: this.exchangeInfo.name }))
-      return data
-    }
-    catch (error) {
-      console.trace(chalk.red(error, this.constructor.name, this.exchangeInfo.name))
-    }
+    return this.request(
+      this.query({
+        path: this.exchangeInfo.name
+      })
+    )
   }
-
-  async depth({ params = { symbol: '', limits: 1000 } } = {}) {
-    if (params.symbol) {
-      try {
-        const { data } = await this.request.get(this.query({ path: this.depth.name, query: params }))
-        return data
-      } catch (error) {
-        console.trace(chalk.red(error, this.constructor.name, this.depth.name))
-      }
-    } else {
-      throw console.trace(chalk.red(new Error('missing mandatory param symbol')))
+  // Description: adjusted based on the limit
+  // Weight: adjusted based on the limit
+  async depth({ symbol = '', limit = 50 } = {}) {
+    if (!symbol) {
+      throw new Error('Missed mandatory params')
     }
+
+    return this.request(
+      this.query({
+        path: this.depth.name,
+        params: { symbol, limit }
+      })
+    )
   }
-
-  async trades({ params = { symbol: '', limits: 500 } }) {
-    if (params.symbol) {
-      try {
-        const { data } = await this.request.get(this.query({ path: this.trades.name, query: params }))
-        return data
-      } catch (error) {
-        console.trace(chalk.red(error, this.constructor.name, this.trades.name))
-      }
-    } else {
-      throw console.trace(chalk.red(new Error('missing mandatory param symbol')))
+  // Description: get recent trades (up to last 24h)
+  // Weight: 1
+  async trades({ symbol = '', limit = 500 } = {}) {
+    if (!symbol) {
+      throw new Error('Missed mandatory params')
     }
+
+    return this.request(
+      this.query({
+        path: this.depth.name,
+        params: { symbol, limit }
+      })
+    )
   }
-
-  async historicalTrades({ params = { symbol: '', limits: 500, fromid: '' } }) {
-    if (params.symbol) {
-      try {
-        const { data } = await this.request.get(this.query({ path: this.historicalTrades.name, query: params }))
-        return data
-      } catch (error) {
-        console.trace(chalk.red(error, this.constructor.name, this.historicalTrades.name))
-      }
-    } else {
-      throw console.trace(chalk.red(new Error('missing mandatory param symbol')))
+  // Description: get older market historical trades
+  // Weight: 5
+  async historicalTrades({ symbol = '', limit = 500, fromid } = {}) {
+    if (!symbol) {
+      throw new Error('Missed mandatory params')
     }
+
+    return this.request(
+      this.query({
+        path: this.historicalTrades.name,
+        params: { symbol, limit, fromid }
+      })
+    )
   }
-
-  async aggTrades({ params = { symbol: '', limit: 500, fromId: '', startTime: 0, endTime: 0 } }) {
-    if (params.symbol) {
-      try {
-        const { data } = await this.request.get(this.query({ path: this.aggTrades.name, query: params }))
-        return data
-      } catch (error) {
-        console.trace(chalk.red(error, this.constructor.name, this.aggTrades.name))
-      }
-    } else {
-      throw console.trace(chalk.red(new Error('missing mandatory param symbol')))
+  // Description: get compressed, aggregate trades. Trades that fill at the time, from the same order, with the same price will have the quantity aggregated
+  // Weight: 1
+  async aggTrades({ symbol = '', limit = 500, fromId, startTime, endTime } = {}) {
+    if (!symbol) {
+      throw new Error('Missed mandatory params')
     }
+
+    return this.request(
+      this.query({
+        path: this.aggTrades.name,
+        params: { symbol, limit, fromId, startTime, endTime }
+      })
+    )
   }
-
-  async klines({ params = { symbol: '', interval: 0, limit: 500, startTime: 0, endTime: 0 } }) {
-    if (params.symbol && params.interval) {
-      try {
-        const { data } = await this.request.get(this.query({ path: this.klines.name, query: params }))
-        return data
-      } catch (error) {
-        console.trace(chalk.red(error, this.constructor.name, this.klines.name))
-      }
-    } else {
-      throw console.trace(chalk.red(new Error('missing mandatory param')))
+  // Description: get kline bars for a symbol. Klines are uniquely identified by their open time
+  // Additionally: If startTime and endTime are not sent, the most recent klines are returned
+  // Weight: 1
+  async klines({ symbol = '', interval = '1h', limit = 500, startTime, endTime } = {}) {
+    if (!symbol || !interval) {
+      throw new Error('Missed mandatory params')
     }
+
+    return this.request(
+      this.query({
+        path: this.klines.name,
+        params: { symbol, interval, limit, startTime, endTime }
+      })
+    )
   }
-
-  async premiumIndex({ params = { symbol: '' } }) {
-    try {
-      const { data } = await this.request.get(this.query({ path: this.premiumIndex.name, query: params }))
-      return data
-    }
-    catch (error) {
-      console.trace(chalk.red(error, this.constructor.name, this.premiumIndex.name))
-    }
+  // Description: get mark price and funding rate
+  // Additionally: If the symbol is not sent, tickers for all symbols will be returned in an array
+  // Weight: 1
+  async premiumIndex({ symbol = '' } = {}) {
+    return this.request(
+      this.query({
+        path: this.premiumIndex.name,
+        params: { symbol }
+      })
+    )
   }
-
-  async fundingRate({ params = { symbol: '', limit: 100, startTime: 0, endTime: 0 } }) {
-    if (params.symbol) {
-      try {
-        const { data } = await this.request.get(this.query({ path: this.fundingRate.name, query: params }))
-        return data
-      } catch (error) {
-        console.trace(chalk.red(error, this.constructor.name, this.fundingRate.name))
-      }
-    } else {
-      throw console.trace(chalk.red(new Error('missing mandatory param symbol')))
-    }
+  // Description: get 24 hour rolling window price change statistics
+  // Weight: 1 for a single symbol, 40 when the symbol parameter is omitted
+  async tickerDay({ symbol = '' } = {}) {
+    return this.request(
+      this.query({
+        path: '/ticker/24hr',
+        params: { symbol }
+      })
+    )
   }
-
-  async tickerDay({ params = { symbol: '' } }) {
-    try {
-      const { data } = await this.request.get(this.query({ path: '/ticker/24hr', query: params }))
-      return data
-    } catch (error) {
-      console.trace(chalk.red(error, this.constructor.name, this.tickerDay.name))
-    }
+  // Description: get latest price for a symbol or symbols
+  // Additionally: If the symbol is not sent, tickers for all symbols will be returned in an array
+  // Weight: 1 for a single symbol, 2 when the symbol parameter is omitted
+  async tickerPrice({ symbol = '' } = {}) {
+    return this.request(
+      this.query({
+        path: '/ticker/price',
+        params: { symbol }
+      })
+    )
   }
-
-  async tickerPrice({ params = { symbol: '' } }) {
-    try {
-      const { data } = await this.request.get(this.query({ path: '/ticker/price', query: params }))
-      return data
-    } catch (error) {
-      console.trace(chalk.red(error, this.constructor.name, this.tickerPrice.name))
-    }
+  // Description: best price/qty on the order book for a symbol or symbols
+  // Additionally: If the symbol is not sent, tickers for all symbols will be returned in an array
+  // Weight: 1 for a single symbol, 2 when the symbol parameter is omitted
+  async bookTicker({ symbol = '' } = {}) {
+    return this.request(
+      this.query({
+        path: '/ticker/bookTicker',
+        params: { symbol }
+      })
+    )
   }
-
-  async tickerBookTicker({ params = { symbol: '' } }) {
-    try {
-      const { data } = await this.request.get(this.query({ path: '/ticker/bookTicker', query: params }))
-      return data
-    } catch (error) {
-      console.trace(chalk.red(error, this.constructor.name, this.tickerBookTicker.name))
-    }
+  // Description: get all liquidation orders
+  // Additionally: If the symbol is not sent, liquidation orders for all symbols will be returned
+  // Weight: 5
+  async allForceOrders({ symbol = '', limit = 100, startTime, endTime } = {}) {
+    return this.request(
+      this.query({
+        path: this.allForceOrders.name,
+        params: { symbol, startTime, endTime, limit }
+      })
+    )
   }
-
-  async allForceOrders({ params = { symbol: '', startTime: '', endTime: '', limit: 100 } }) {
-    try {
-      const { data } = await this.request.get(this.query({ path: this.allForceOrders.name, query: params }))
-      return data
-    } catch (error) {
-      console.trace(chalk.red(error, this.constructor.name, this.allForceOrders.name))
+  // Description: get present open interest of a specific symbol
+  // Weight: 1
+  async openInterest({ symbol = '' } = {}) {
+    if (!symbol) {
+      throw new Error('Missed mandatory params')
     }
-  }
 
-
-  async openInterest({ params = { symbol: '' } }) {
-    if (params.symbol) {
-      try {
-        const { data } = await this.request.get(this.query({ path: this.openInterest.name, query: params }))
-        return data
-      } catch (error) {
-        console.trace(chalk.red(error, this.constructor.name, this.openInterest.name))
-      }
-    } else {
-      throw console.trace(chalk.red(new Error('missing mandatory param symbol')))
-    }
+    return this.request(
+      this.query({
+        path: this.openInterest.name,
+        params: { symbol }
+      })
+    )
   }
-
-  async leverageBracket({ params = { symbol: '' } }) {
-    try {
-      const { data } = await this.request.get(this.query({ path: this.leverageBracket.name, query: params }))
-      return data
-    } catch (error) {
-      console.trace(chalk.red(error, this.constructor.name, this.leverageBracket.name))
-    }
+  // Description: get notional and leverage brackets
+  // Weight: 1
+  async leverageBracket({ symbol = '' } = {}) {
+    return this.request(
+      this.query({
+        path: this.leverageBracket.name,
+        params: { symbol }
+      })
+    )
   }
-  // open delete get status of orders
-  async order({ method = '', params = { symbol: '', side: '', type: '', quantity: 0, stopPrice: 0, price: 0, reduceOnly: false, workingType: 'CONTRACT_PRICE', timeInForce: 'GTC', activationPrice: 0, callbackRate: 0, newClientOrderId: '', orderId: '' } }) {
-    const path = this.order.name
-    const query = params
+  // Description: open delete get status of orders
+  async order({
+    method = 'GET',
+    symbol = '',
+    timeInForce = 'GTC',
+    reduceOnly = true,
+    side,
+    type,
+    quantity,
+    stopPrice,
+    price,
+    workingType = 'CONTRACT_PRICE',
+    callbackRate,
+    origClientOrderId,
+    orderId,
+    activationPrice,
+    newClientOrderId
+    // positionSide
+  } = {}) {
     switch (method) {
       case 'GET': {
-        // check an order`s status
-        if (params.symbol && params.orderId) {
-          try {
-            const { data } = await this.request.get(this.query({ path, query }))
-            return data
-          } catch (error) {
-            console.trace(chalk.red(error, this.constructor.name, this.order.name))
-          }
-        } else {
-          throw console.trace(chalk.red(new Error('missing mandatory param')))
+        // Description: get order status by id
+        if (!symbol || !orderId) {
+          throw new Error('Missed mandatory params')
         }
+
+        return this.request(
+          this.query({
+            path: this.order.name,
+            params: { symbol, orderId, origClientOrderId }
+          }), { method }
+        )
       }
-        break
       case 'POST': {
-        switch (params.type) {
+        switch (type) {
+          // Description: open order
           case 'LIMIT': {
-            if (params.symbol && params.side && params.quantity && params.price && params.timeInForce) {
-              try {
-                const { data } = await this.request({
-                  url: this.query({ path, query }),
-                  method
-                })
-                return data
-              } catch (error) {
-                console.trace(chalk.red(error, this.constructor.name, this.order.name))
-              }
-            } else {
-              throw console.trace(chalk.red(new Error('missing mandatory param')))
+            if (!symbol || !side || !quantity || !price || !timeInForce) {
+              throw new Error('Missed mandatory params')
             }
+
+            return this.request(
+              this.query({
+                path: this.order.name,
+                params: { symbol, side, type, price, quantity, timeInForce, newClientOrderId }
+              }), { method }
+            )
           }
-            break
-          case 'STOP' || 'TAKE_PROFIT': {
-            if (params.symbol && params.side && params.quantity && params.price && params.stopPrice) {
-              try {
-                const { data } = await this.request({
-                  url: this.query({ path, query }),
-                  method
-                })
-                return data
-              } catch (error) {
-                console.trace(chalk.red(error, this.constructor.name, this.order.name))
-              }
+          case 'STOP':
+          case 'TAKE_PROFIT': {
+            if (!symbol || !side || !quantity || !price || !stopPrice) {
+              throw new Error('Missed mandatory params')
             }
-            else {
-              throw console.trace(chalk.red(new Error('missing mandatory param')))
-            }
+
+            return this.request(
+              this.query({
+                path: this.order.name,
+                params: { symbol, side, type, price, stopPrice, quantity, reduceOnly, workingType, newClientOrderId }
+              }), { method }
+            )
           }
-            break
-          case 'STOP_MARKET' || 'TAKE_PROFIT_MARKET': {
-            if (params.symbol && params.side && params.quantity && params.stopPrice) {
-              try {
-                const { data } = await this.request({
-                  url: this.query({ path, query }),
-                  method
-                })
-                return data
-              } catch (error) {
-                console.trace(chalk.red(error, this.constructor.name, this.order.name))
-              }
+          case 'STOP_MARKET':
+          case 'TAKE_PROFIT_MARKET': {
+            if (!symbol || !side || !quantity || !stopPrice) {
+              throw new Error('Missed mandatory params')
             }
+
+            return this.request(
+              this.query({
+                path: this.order.name,
+                params: { symbol, side, type, stopPrice, quantity, reduceOnly, workingType, newClientOrderId }
+              }), { method }
+            )
           }
-            break
           case 'TRAILING_STOP_MARKET': {
-            if (params.symbol && params.side && params.quantity && params.callbackRate) {
-              try {
-                const { data } = await this.request({
-                  url: this.query({ path, query }),
-                  method
-                })
-                return data
-              } catch (error) {
-                console.trace(chalk.red(error, this.constructor.name, this.order.name))
-              }
+            if (!symbol || !side || !quantity || !callbackRate) {
+              throw new Error('Missed mandatory params')
             }
+
+            return this.request(
+              this.query({
+                path: this.order.name,
+                params: { symbol, quantity, activationPrice, callbackRate }
+              }), { method }
+            )
           }
         }
       }
         break
-
       case 'DELETE': {
-        // cancel an active order
-        if (params.symbol) {
-          try {
-            const { data } = await this.request({
-              url: this.query({ path, query }),
-              method
-            })
-            return data
-          } catch (error) {
-            console.trace(chalk.red(error, this.constructor.name, this.order.name))
-          }
+        // Description: delete an active order by id
+        if (!symbol || (!orderId && !origClientOrderId)) {
+          throw new Error('Missed mandatory params')
         }
+
+        return this.request(
+          this.query({
+            path: this.order.name,
+            params: { symbol, orderId, origClientOrderId }
+          }), { method }
+        )
       }
-        break
     }
   }
-  // cancel all open orders
-  async allOpenOrders() {
-    try {
-      const { data } = await this.request.delete(this.query({ path: this.allOpenOrders.name }))
-      return data
-    } catch (error) {
-      console.trace(chalk.red(error, this.constructor.name, this.allOpenOrders.name))
-    }
+  // Description: delete all open orders
+  // Weight: 1
+  async allOpenOrders({ symbol = '' }) {
+    return this.request(
+      this.query({
+        path: this.allOpenOrders.name,
+        params: { symbol }
+      }), { method: 'DELETE' }
+    )
   }
+  // Description: get query current open order
+  // Additionally: either orderIdList or origClientOrderIdList must be sent
+  async openOrder({ symbol = '', orderId = '', origClientOrderId } = {}) {
+    if (!symbol || (!orderId && !origClientOrderId)) {
+      throw new Error('Missed mandatory params')
+    }
+    return this.request(
+      this.query({
+        path: this.openOrder.name,
+        params: { symbol, orderId, origClientOrderId }
+      })
+    )
+  }
+  // Description: get current all open orders
+  // Weight: 1 for a single symbol, 40 when the symbol parameter is omitted
+  async openOrders({ symbol = '' } = {}) {
+    return this.request(
+      this.query({
+        path: this.openOrders.name,
+        params: { symbol }
+      }))
+  }
+  // Description: get all account orders; active, canceled, or filled.
+  // Additionally: If orderId is set, it will get orders >= that orderId. Otherwise most recent orders are returned
+  async allOrders({ symbol = '', limit = 500, orderId, startTime, endTime } = {}) {
+    if (!symbol) {
+      throw new Error('Missed mandatory params')
+    }
 
-  async batchOrders({ params = { symbol: '', orderList: '', origClientOrderIdList: '' } }) {
-    if (params.symbol) {
-      try {
-        const { data } = await this.request.delete(this.query({ path: this.batchOrders.name, query: params }))
-        return data
-      } catch (error) {
-        console.trace(chalk.red(error, this.constructor.name, this.batchOrders.name))
-      }
-    } else {
-      throw console.trace(chalk.red(new Error('missing mandatory param')))
-    }
+    return this.request(
+      this.query({
+        path: this.allOrders.name,
+        params: { symbol, limit, orderId, startTime, endTime }
+      })
+    )
   }
-
-  async openOrder({ params = { symbol: '', orderId: '', origClientOrderIdList: '' } }) {
-    try {
-      const { data } = await this.request.get(this.query({ path: this.openOrder.name, query: params }))
-      return data
-    } catch (error) {
-      console.trace(chalk.red(error, this.constructor.name, this.openOrder.name))
-    }
-  }
-
-  async openOrders({ params = { symbol: '' } }) {
-    if (params.symbol) {
-      try {
-        const { data } = await this.request.get(this.query({ path: this.openOrders.name, query: params }))
-        return data
-      } catch (error) {
-        console.trace(chalk.red(error, this.constructor.name, this.openOrders))
-      }
-    } else {
-      throw console.trace(chalk.red(new Error('missing mandatory param')))
-    }
-  }
-
-  async allOrders({ params = { symbol: '', orderId: '', startTime: 0, endTime: 0, limit: 500 } }) {
-    if (params.symbol) {
-      try {
-        const { data } = await this.request.get(this.query({ path: this.allOrders.name, query: params }))
-        return data
-      } catch (error) {
-        console.trace(chalk.red(error, this.constructor.name, this.allOrders.name))
-      }
-    } else {
-      throw console.trace(chalk.red(new Error('missing mandatory param')))
-    }
-  }
-
+  // Description: get future account balance
+  // Additionally: not available on test
   async balance() {
-    try {
-      const { data } = await this.request.get(this.query({ path: this.balance.name }))
-      return data
-    } catch (error) {
-      console.trace(chalk.red(error, this.constructor.name, this.balance.name))
-    }
+    return this.request(
+      this.query({
+        path: this.balance.name
+      })
+    )
   }
-
+  // Description: get current account information.
+  // Weight: 5
   async account() {
-    try {
-      const { data } = await this.request.get(this.query({ path: this.account.name }))
-      return data
-    }
-    catch (error) {
-      console.trace(chalk.red(error, this.constructor.name, this.account.name))
-    }
+    return this.request(
+      this.query({
+        path: this.account.name
+      })
+    )
   }
+  // Description: change user's initial leverage in the specific symbol market
+  // Additionally: for Hedge Mode, LONG and SHORT positions of one symbol use the same initial leverage and share a total notional value
+  // Weight: 1
+  async leverage({ symbol = '', leverage = 1 } = {}) {
+    if (!symbol || !leverage) {
+      throw new Error('Missed mandatory params')
+    }
 
-  async leverage({ params = { symbol: '', leverage: 0 } }) {
-    if (params.symbol && params.leverage) {
-      try {
-        const { data } = await this.request.post(this.query({ path: this.leverage, query: params }))
-        return data
-      } catch (error) {
-        console.trace(chalk.red(error, this.constructor.name, this.leverage.name))
-      }
-    } else {
-      throw console.trace(chalk.red(new Error('missing mandatory param')))
-    }
+    return this.request(
+      this.query({
+        path: this.leverage.name,
+        params: { symbol, leverage }
+      }), { method: 'POST' }
+    )
   }
-  //ISOLATED, CROSSED
-  async marginType({ params = { symbol: '', marginType: '' } }) {
-    if (params.symbol && params.marginType) {
-      try {
-        const { data } = await this.request.post(this.query({ path: this.marginType, query: params }))
-        return data
-      } catch (error) {
-        console.trace(chalk.red(error, this.constructor.name, this.marginType.name))
-      }
-    } else {
-      throw console.trace(chalk.red(new Error('missing mandatory param')))
+  // Description: Change user's margin type in the specific symbol market. For Hedge Mode, LONG and SHORT positions of one symbol use the same margin type
+  // Additionally: With ISOLATED margin type, margins of the LONG and SHORT positions are isolated from each other
+  // Weight: 1
+  async marginType({ symbol = '', marginType = '' } = {}) {
+    if (!symbol || !marginType) {
+      throw new Error('Missed mandatory params')
     }
-  }
-  //1: Add postion margin，2: Reduce postion margin
-  async positionMargin({ params = { symbol: '', amount: 0, type: 0 } }) {
-    if (params.symbol && params.amount) {
-      try {
-        const { data } = await this.request.get(this.query({ path: this.positionMargin, query: params }))
-        return data
-      } catch (error) {
-        console.trace(chalk.red(error, this.constructor.name, this.positionMargin.name))
-      }
-    } else {
-      throw console.trace(chalk.red(new Error('missing mandatory param')))
-    }
-  }
 
+    return this.request(
+      this.query({
+        path: this.marginType,
+        params: { symbol, marginType }
+      }), { method: 'POST' }
+    )
+  }
+  // Description: modify isolated position margin
+  // Weight: 1
+  // Todo: need test
+  async positionMargin({ symbol = '', amount = 0, type = 0, positionSide } = {}) {
+    if (!symbol || !amount || !type) {
+      throw new Error('Missed mandatory params')
+    } else {
+      return this.request(
+        this.query({
+          path: this.marginType,
+          params: { symbol, amount, type, positionSide }
+        })
+      )
+    }
+  }
+  // Description: get current account information
+  // Weight: 5
+  // Todo: need test
   async positionRisk() {
-    try {
-      const { data } = await this.request.post(this.query({ path: this.positionMargin }))
-      return data
-    } catch (error) {
-      console.trace(chalk.red(error, this.constructor.name, this.positionMargin.name))
+    return this.request(
+      this.query({
+        path: this.marginType
+      })
+    )
+  }
+  // Description: get trades for a specific account and symbol
+  // Weight: 5
+  // Todo: need test
+  async userTrades({ symbol = '', limit = 500, fromId, startTime, endTime } = {}) {
+    if (!symbol) {
+      throw new Error('Missed mandatory params')
     }
+
+    return this.request(
+      this.query({
+        path: this.userTrades.name,
+        params: { symbol, limit, fromId, startTime, endTime }
+      })
+    )
+  }
+  // Description: get income history
+  // Additionally: if incomeType is not sent, all kinds of flow will be returned, if startTime and endTime are not sent, the most recent limit datas will be returned, if the number of data between startTime and endTime is larger than limit, response will be return as startTime with limit.
+  // Weight: 1
+  // Todo: need test
+  async income({ symbol, limit = 1000, incomeType, startTime, endTime } = {}) {
+    return this.request(
+      this.query({
+        path: this.income.name,
+        params: { symbol, limit, incomeType, startTime, endTime }
+      })
+    )
   }
 
-  async userTrades({ params = { symbol: '', startTime: 0, endTime: 0, fromId: 0, limit: 500 } }) {
-    if (params.symbol) {
-      try {
-        const { data } = await this.request.get(this.query({ path: this.userTrades.name }))
-        return data
-      } catch (error) {
-        console.trace(chalk.red(error, this.constructor.name, this.userTrades.name))
-      }
-    } else {
-      throw console.trace(chalk.red(new Error('missing mandatory param')))
-    }
-  }
-
-  async income({ params = { symbol: '', incomeType: '', startTime: 0, endTime: 0, limit: 100 } }) {
-    if (params.symbol) {
-      try {
-        const { data } = await this.request.get(this.query({ path: this.income.name }))
-        return data
-      } catch (error) {
-        console.trace(chalk.red(error, this.constructor.name, this.income.name))
-      }
-    } else {
-      throw console.trace(chalk.red(new Error('missing mandatory param')))
-    }
+  async listenKey(keepAlive = false) {
+    return keepAlive
+      ? this.request(this.query({ path: this.listenKey.name }), { method: 'PUT' })
+      : this.request(this.query({ path: this.listenKey.name }), { method: 'POST' })
   }
 }
+
+export default Binance
