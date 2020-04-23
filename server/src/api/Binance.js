@@ -10,6 +10,14 @@ class Binance {
     this.recvWindow = recvWindow
   }
 
+  mandatory(params = {}) {
+    const propertys = [];
+    for (const [property, value] of Object.entries(params)) {
+      if (!value) propertys.push(property);
+    }
+    throw new Error(`Missed mandatory parameters: ${propertys.toString()}`)
+  }
+
   request(path = '', { method = 'GET' } = {}) {
     return fetch(`${this.host}${path}`, {
       method,
@@ -73,9 +81,7 @@ class Binance {
   // Description: adjusted based on the limit
   // Weight: adjusted based on the limit
   async depth({ symbol = '', limit = 50 } = {}) {
-    if (!symbol) {
-      throw new Error('Missed mandatory params')
-    }
+    this.mandatory({ symbol })
 
     return this.request(
       this.query({
@@ -87,9 +93,7 @@ class Binance {
   // Description: get recent trades (up to last 24h)
   // Weight: 1
   async trades({ symbol = '', limit = 500 } = {}) {
-    if (!symbol) {
-      throw new Error('Missed mandatory params')
-    }
+    this.mandatory({ symbol })
 
     return this.request(
       this.query({
@@ -101,9 +105,7 @@ class Binance {
   // Description: get older market historical trades
   // Weight: 5
   async historicalTrades({ symbol = '', limit = 500, fromid } = {}) {
-    if (!symbol) {
-      throw new Error('Missed mandatory params')
-    }
+    this.mandatory({ symbol })
 
     return this.request(
       this.query({
@@ -115,9 +117,7 @@ class Binance {
   // Description: get compressed, aggregate trades. Trades that fill at the time, from the same order, with the same price will have the quantity aggregated
   // Weight: 1
   async aggTrades({ symbol = '', limit = 500, fromId, startTime, endTime } = {}) {
-    if (!symbol) {
-      throw new Error('Missed mandatory params')
-    }
+    this.mandatory({ symbol })
 
     return this.request(
       this.query({
@@ -130,9 +130,7 @@ class Binance {
   // Additionally: If startTime and endTime are not sent, the most recent klines are returned
   // Weight: 1
   async klines({ symbol = '', interval = '1h', limit = 500, startTime, endTime } = {}) {
-    if (!symbol || !interval) {
-      throw new Error('Missed mandatory params')
-    }
+    this.mandatory({ symbol, interval });
 
     return this.request(
       this.query({
@@ -198,9 +196,7 @@ class Binance {
   // Description: get present open interest of a specific symbol
   // Weight: 1
   async openInterest({ symbol = '' } = {}) {
-    if (!symbol) {
-      throw new Error('Missed mandatory params')
-    }
+    ithis.mandatory({ symbol });
 
     return this.request(
       this.query({
@@ -221,7 +217,7 @@ class Binance {
   }
   // Description: open delete get status of orders
   async order({
-    method = 'GET',
+    method,
     symbol = '',
     timeInForce = 'GTC',
     reduceOnly = true,
@@ -239,11 +235,9 @@ class Binance {
     // positionSide
   } = {}) {
     switch (method) {
+      // Description: get order status by id
       case 'GET': {
-        // Description: get order status by id
-        if (!symbol || !orderId) {
-          throw new Error('Missed mandatory params')
-        }
+        this.mandatory({ symbol, orderId, method })
 
         return this.request(
           this.query({
@@ -252,13 +246,11 @@ class Binance {
           }), { method }
         )
       }
+      // Description: open order
       case 'POST': {
         switch (type) {
-          // Description: open order
           case 'LIMIT': {
-            if (!symbol || !side || !quantity || !price || !timeInForce) {
-              throw new Error('Missed mandatory params')
-            }
+            this.mandatory({ symbol, side, quantity, price, timeInForce, method })
 
             return this.request(
               this.query({
@@ -269,9 +261,7 @@ class Binance {
           }
           case 'STOP':
           case 'TAKE_PROFIT': {
-            if (!symbol || !side || !quantity || !price || !stopPrice) {
-              throw new Error('Missed mandatory params')
-            }
+            this.mandatory({ symbol, side, quantity, price, stopPrice, method })
 
             return this.request(
               this.query({
@@ -282,9 +272,7 @@ class Binance {
           }
           case 'STOP_MARKET':
           case 'TAKE_PROFIT_MARKET': {
-            if (!symbol || !side || !quantity || !stopPrice) {
-              throw new Error('Missed mandatory params')
-            }
+            this.mandatory({ symbol, side, quantity, stopPrice, method })
 
             return this.request(
               this.query({
@@ -294,9 +282,7 @@ class Binance {
             )
           }
           case 'TRAILING_STOP_MARKET': {
-            if (!symbol || !side || !quantity || !callbackRate) {
-              throw new Error('Missed mandatory params')
-            }
+            this.mandatory({ symbol, side, quantity, callbackRate, method })
 
             return this.request(
               this.query({
@@ -308,11 +294,9 @@ class Binance {
         }
       }
         break
+      // Description: delete an active order by id
       case 'DELETE': {
-        // Description: delete an active order by id
-        if (!symbol || (!orderId && !origClientOrderId)) {
-          throw new Error('Missed mandatory params')
-        }
+        this.mandatory({ symbol, orderId, origClientOrderId, method })
 
         return this.request(
           this.query({
@@ -336,9 +320,8 @@ class Binance {
   // Description: get query current open order
   // Additionally: either orderIdList or origClientOrderIdList must be sent
   async openOrder({ symbol = '', orderId = '', origClientOrderId } = {}) {
-    if (!symbol || (!orderId && !origClientOrderId)) {
-      throw new Error('Missed mandatory params')
-    }
+    this.mandatory({ symbol, orderId })
+
     return this.request(
       this.query({
         path: this.openOrder.name,
@@ -358,9 +341,7 @@ class Binance {
   // Description: get all account orders; active, canceled, or filled.
   // Additionally: If orderId is set, it will get orders >= that orderId. Otherwise most recent orders are returned
   async allOrders({ symbol = '', limit = 500, orderId, startTime, endTime } = {}) {
-    if (!symbol) {
-      throw new Error('Missed mandatory params')
-    }
+    this.mandatory({ symbol })
 
     return this.request(
       this.query({
@@ -391,9 +372,7 @@ class Binance {
   // Additionally: for Hedge Mode, LONG and SHORT positions of one symbol use the same initial leverage and share a total notional value
   // Weight: 1
   async leverage({ symbol = '', leverage = 1 } = {}) {
-    if (!symbol || !leverage) {
-      throw new Error('Missed mandatory params')
-    }
+    this.mandatory({ symbol, leverage })
 
     return this.request(
       this.query({
@@ -406,9 +385,7 @@ class Binance {
   // Additionally: With ISOLATED margin type, margins of the LONG and SHORT positions are isolated from each other
   // Weight: 1
   async marginType({ symbol = '', marginType = '' } = {}) {
-    if (!symbol || !marginType) {
-      throw new Error('Missed mandatory params')
-    }
+    this.mandatory({ symbol, marginType })
 
     return this.request(
       this.query({
@@ -421,16 +398,14 @@ class Binance {
   // Weight: 1
   // Todo: need test
   async positionMargin({ symbol = '', amount = 0, type = 0, positionSide } = {}) {
-    if (!symbol || !amount || !type) {
-      throw new Error('Missed mandatory params')
-    } else {
-      return this.request(
-        this.query({
-          path: this.marginType,
-          params: { symbol, amount, type, positionSide }
-        })
-      )
-    }
+    this.mandatory({ symbol, amount, type })
+
+    return this.request(
+      this.query({
+        path: this.marginType,
+        params: { symbol, amount, type, positionSide }
+      })
+    )
   }
   // Description: get current account information
   // Weight: 5
@@ -446,9 +421,7 @@ class Binance {
   // Weight: 5
   // Todo: need test
   async userTrades({ symbol = '', limit = 500, fromId, startTime, endTime } = {}) {
-    if (!symbol) {
-      throw new Error('Missed mandatory params')
-    }
+    this.mandatory({ symbol })
 
     return this.request(
       this.query({
@@ -469,7 +442,7 @@ class Binance {
       })
     )
   }
-
+  // Description: get key for socket
   async listenKey(keepAlive = false) {
     return keepAlive
       ? this.request(this.query({ path: this.listenKey.name }), { method: 'PUT' })
