@@ -217,7 +217,7 @@ class Binance {
   }
   // Description: open delete get status of orders
   async order({
-    method = 'GET',
+    method,
     symbol = '',
     timeInForce = 'GTC',
     reduceOnly = true,
@@ -237,7 +237,7 @@ class Binance {
     switch (method) {
       // Description: get order status by id
       case 'GET': {
-        this.mandatory({ symbol, orderId })
+        this.mandatory({ symbol, orderId, method })
 
         return this.request(
           this.query({
@@ -250,7 +250,7 @@ class Binance {
       case 'POST': {
         switch (type) {
           case 'LIMIT': {
-            this.mandatory({ symbol, side, quantity, price, timeInForce })
+            this.mandatory({ symbol, side, quantity, price, timeInForce, method })
 
             return this.request(
               this.query({
@@ -261,7 +261,7 @@ class Binance {
           }
           case 'STOP':
           case 'TAKE_PROFIT': {
-            this.mandatory({ symbol, side, quantity, price, stopPrice })
+            this.mandatory({ symbol, side, quantity, price, stopPrice, method })
 
             return this.request(
               this.query({
@@ -272,7 +272,7 @@ class Binance {
           }
           case 'STOP_MARKET':
           case 'TAKE_PROFIT_MARKET': {
-            this.mandatory({ symbol, side, quantity, stopPrice })
+            this.mandatory({ symbol, side, quantity, stopPrice, method })
 
             return this.request(
               this.query({
@@ -282,7 +282,7 @@ class Binance {
             )
           }
           case 'TRAILING_STOP_MARKET': {
-            this.mandatory({ symbol, side, quantity, callbackRate })
+            this.mandatory({ symbol, side, quantity, callbackRate, method })
 
             return this.request(
               this.query({
@@ -296,7 +296,7 @@ class Binance {
         break
       // Description: delete an active order by id
       case 'DELETE': {
-        this.mandatory({ symbol, orderId, origClientOrderId })
+        this.mandatory({ symbol, orderId, origClientOrderId, method })
 
         return this.request(
           this.query({
