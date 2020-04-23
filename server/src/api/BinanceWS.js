@@ -1,90 +1,95 @@
-import WebSocket from 'ws'
+import { w3cwebsocket as WebSocket } from 'websocket';
 
-export default class BinanceWS {
-
-  constructor({ host = null } = {}) {
-    this._sockets = {}
-    this.host = host
-    this.streams = {
-      depth: (symbol) => `${symbol.toLowerCase()}@depth`,
-      depthLevel: (symbol, level) => `${symbol.toLowerCase()}@depth${level}`,
-      kline: (symbol, interval) => `${symbol.toLowerCase()}@kline_${interval}`,
-      aggTrade: (symbol) => `${symbol.toLowerCase()}@aggTrade`,
-      trade: (symbol) => `${symbol.toLowerCase()}@trade`,
-      ticker: (symbol) => `${symbol.toLowerCase()}@ticker`,
-      allTickers: () => '!ticker@arr'
-    }
+class BinanceWS {
+  constructor({ host = '', key = '', secret = '' } = {}) {
+    this.host = `${host}/ws/`
+    this.key = key
+    this.secret = secret
   }
 
-  _setupWebSocket(eventHandler, path) {
-    if (this._sockets[path]) {
-      return this._sockets[path]
-    }
-
-    if (this._sockets[path]) {
-      return this._sockets[path]
-    }
-
-    const ws = new WebSocket(this.host)
-
-    ws.on('message', (message) => {
-      let event
-      try {
-        event = JSON.parse(message)
-      } catch (e) {
-        event = message
-      }
-
-      eventHandler(event)
-    })
-
-    ws.on('error', () => {
-
-    })
+  instance({ path = '' } = {}, callback) {
+    const ws = new WebSocket(`${this.host}${path ? path : ''}`)
+    ws.onopen = callback
+    ws.onmessage = callback
+    ws.onerror = callback
 
     return ws
   }
 
-  onDepthUpdate(symbol, eventHandler) {
-    return this._setupWebSocket(eventHandler, this.streams.depth(symbol))
+  query({ name = '', symbol = '', interval = '', levels = 0, time = '', allTickers = false } = {}) {
+    if (allTickers) {
+      return `!@${name}@arr
+        ${interval ? `_${interval}` : ''}
+        ${levels ? levels : ''}
+        ${time ? `@${time}` : ''}`
+        .split(/\s|\n/)
+        .join('')
+        .toLowerCase();
+    } else {
+      return `${symbol ? symbol : ''}@
+        ${name}${interval ? `_${interval}` : ''}
+        ${levels ? levels : ''}
+        ${time ? `@${time}` : ''}`
+        .split(/\s|\n/)
+        .join('')
+        .toLowerCase();
+    }
   }
-
-  onDepthLevelUpdate(symbol, level, eventHandler) {
-    return this._setupWebSocket(eventHandler, this.streams.depthLevel(symbol, level))
-  }
-
-  onKline(symbol, interval, eventHandler) {
-    return this._setupWebSocket(eventHandler, this.streams.kline(symbol, interval))
-  }
-
-  onAggTrade(symbol, eventHandler) {
-    return this._setupWebSocket(eventHandler, this.streams.aggTrade(symbol))
-  }
-
-  onTrade(symbol, eventHandler) {
-    return this._setupWebSocket(eventHandler, this.streams.trade(symbol))
-  }
-
-  onTicker(symbol, eventHandler) {
-    return this._setupWebSocket(eventHandler, this.streams.ticker(symbol))
-  }
-
-  onAllTickers(eventHandler) {
-    return this._setupWebSocket(eventHandler, this.streams.allTickers())
-  }
-
-  onUserData(binanceRest, eventHandler, interval = 60000) {
-    return binanceRest.startUserDataStream()
-      .then((response) => {
-        setInterval(() => {
-          binanceRest.keepAliveUserDataStream(response)
-        }, interval)
-        return this._setupWebSocket(eventHandler, response.listenKey)
+  // The Aggregate Trade Streams push trade information that is aggregated for a single taker order every 100 milliseconds
+  aggTrade({ symbol = '' } = {}, callback) {
+    return this.instance({
+      path: this.query({
+        symbol,
+        name: this.aggTrade.name
       })
+    }, callback)
+  }
+  // Mark price and funding rate for a single symbol pushed every 3 secends or every secends
+  markPrice({ symbol = '', time = '1s', allTickers = false } = {}, callback) {
+    return this.instance({
+      path: this.query({
+        name: this.markPrice.name,
+        symbol,
+        time,
+        allTickers
+      })
+    }, callback)
+  }
+  // The Kline/Candlestick Stream push updates to the current klines/candlestick every 250 milliseconds (if existing)
+  kline({ symbol = '', interval = '' } = {}, callback) {
+    return this.instance({
+      path: this.query({ symbol, name: this.kline.name, interval })
+    }, callback)
+  }
+  // 24hr rolling window mini-ticker statistics for a single symbol. These are NOT the statistics of the UTC day, but a 24hr rolling window from requestTime to 24hrs before
+
+  depth({ symbol = '', level = 5 } = {}, callback) {
+    return this.instance({
+      path: this.query({ symbol, name: this.depth.name, level })
+    }, callback)
+  }
+  //24hr rolling window mini-ticker statistics for a single symbol. These are NOT the statistics of the UTC day, but a 24hr rolling window from requestTime to 24hrs before.
+  miniTicker({ symbol = '' } = {}, callback) {
+    return this.instance({
+      path: this.query({ symbol, name: this.miniTicker.name })
+    }, callback)
+  }
+  // Pushes any update to the best bid or ask's price or quantity in real-time for a specified symbol
+  bookTicker({ symbol = '' } = {}, callback) {
+    return this.instance({
+      path: this.query({ name: this.bookTicker.name, symbol })
+    }, callback)
+  }
+  // The Liquidation Order Streams push force liquidation order information for specific symbol
+  forceOrder({ symbol = '', allTickers = false } = {}, callback) {
+    return this.instance({
+      path: this.query({ name: this.forceOrder.name, symbol, allTickers })
+    }, callback)
   }
 
-  onCombinedStream(streams, eventHandler) {
-    return this._setupWebSocket(eventHandler, streams.join('/'), true)
+  userData({ listenKey } = {}, callback) {
+    return this.instance({ path: listenKey }, callback)
   }
-
 }
+
+export default BinanceWS
