@@ -1,4 +1,4 @@
-import { BollingerBands, RSI, MACD, SMA, Stochastic } from './TechnicalIndicators'
+import { BollingerBands, RSI, MACD, SMA, Stochastic } from 'technicalindicators'
 import { KLINES } from '@@/constants'
 import { precision } from '@@/utils'
 
@@ -18,33 +18,33 @@ export default class Indicators {
       signalPeriod: 9,
       SimpleMAOscillator: false,
       SimpleMASignal: false
-    }).pop()
+    })
     const bollingerbands = new BollingerBands({
       values: this.close,
       period: 20,
       stdDev: 2
-    }).pop()
+    })
     const stochastic = new Stochastic({
       high: this.high,
       low: this.low,
       close: this.close,
       period: 14,
       signalPeriod: 3
-    }).pop()
+    })
     const ma = {
       fast: new SMA({
         values: this.close,
         period: 12
-      }).pop(),
+      }),
       slow: new SMA({
         values: this.close,
         period: 26
-      }).pop()
+      })
     }
     const rsi = new RSI({
       values: this.close,
       period: 14
-    }).pop()
+    })
 
     return {
       ma,
